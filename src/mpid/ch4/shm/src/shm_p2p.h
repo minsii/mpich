@@ -15,6 +15,9 @@
 #define SHM_P2P_H_INCLUDED
 
 #include <shm.h>
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/shm_inline.h"
+#endif
 #include "../posix/shm_inline.h"
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf, MPI_Aint count,
