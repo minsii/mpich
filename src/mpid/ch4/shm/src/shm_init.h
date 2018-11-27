@@ -10,32 +10,52 @@
 
 #include <shm.h>
 #include "../posix/shm_inline.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/shm_inline.h"
+#endif
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_init_hook(int rank, int size, int *n_vcis_provided,
                                                      int *tag_bits)
 {
-    int ret;
+    int mpi_errno;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_INIT_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_INIT_HOOK);
 
-    ret = MPIDI_POSIX_mpi_init_hook(rank, size, n_vcis_provided, tag_bits);
+    mpi_errno = MPIDI_POSIX_mpi_init_hook(rank, size, n_vcis_provided, tag_bits);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
+    mpi_errno = MPIDI_XPMEM_mpi_init_hook(rank, size, n_vcis_provided, tag_bits);
+#endif
+
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_INIT_HOOK);
-    return ret;
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_finalize_hook(void)
 {
-    int ret;
+    int mpi_errno;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_FINALIZE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_FINALIZE_HOOK);
 
-    ret = MPIDI_POSIX_mpi_finalize_hook();
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    mpi_errno = MPIDI_XPMEM_mpi_finalize_hook();
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+#endif
+    mpi_errno = MPIDI_POSIX_mpi_finalize_hook();
 
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_FINALIZE_HOOK);
-    return ret;
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 static inline int MPIDI_SHM_get_vci_attr(int vci)

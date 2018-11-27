@@ -11,12 +11,12 @@
 ##  Contributor License Agreement dated February 8, 2012.
 ##
 
-AM_CPPFLAGS += -I$(top_srcdir)/src/mpid/ch4/shm/include \
-               -I$(top_srcdir)/src/mpid/ch4/shm/posix
+if BUILD_SHM_XPMEM
 
-noinst_HEADERS += src/mpid/ch4/shm/include/shm.h
+noinst_HEADERS += src/mpid/ch4/shm/xpmem/shm_inline.h   \
+                  src/mpid/ch4/shm/xpmem/xpmem_impl.h   \
+                  src/mpid/ch4/shm/xpmem/xpmem_init.h   \
+                  src/mpid/ch4/shm/xpmem/xpmem_pre.h
 
-include $(top_srcdir)/src/mpid/ch4/shm/src/Makefile.mk
-include $(top_srcdir)/src/mpid/ch4/shm/stubshm/Makefile.mk
-include $(top_srcdir)/src/mpid/ch4/shm/posix/Makefile.mk
-include $(top_srcdir)/src/mpid/ch4/shm/xpmem/Makefile.mk
+mpi_core_sources += src/mpid/ch4/shm/xpmem/globals.c
+endif
