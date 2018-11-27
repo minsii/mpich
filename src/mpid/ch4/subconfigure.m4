@@ -380,10 +380,16 @@ if test "$enable_ch4_shm_inline" = "yes" || test "$enable_ch4_shm_direct" = "yes
    PAC_APPEND_FLAG([-DSHM_INLINE=__shm_inline_${ch4_shm}__], [CPPFLAGS])
 fi
 
-# setup shared memory defaults
-# TODO: shm submodules should be chosen with similar configure option as that used for netmod.
-# We can add it when a shm submodule is added. Now we just simply set POSIX.
-ch4_shm=posix
+# setup shared memory submodules
+AC_ARG_WITH(ch4-shmmods, 
+    [  --with-ch4-shmmods@<:@=ARG@:>@ Specify the shared memory submodules for MPICH/CH4.
+                          Valid options are:
+                          posix        - Only enable POSIX SHM (default)
+                          xpmem:posix  - Enable both XPMEM and POSIX SHM
+                 ],
+                 [with_ch4_shmmods=$withval],
+                 [with_ch4_shmmods=posix])
+ch4_shm="`echo $with_ch4_shmmods | sed -e 's/:/ /g' -e 's/,/ /g'`"
 export ch4_shm
 
 # setup default direct communication routine

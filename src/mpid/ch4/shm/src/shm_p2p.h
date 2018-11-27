@@ -15,6 +15,9 @@
 #define SHM_P2P_H_INCLUDED
 
 #include <shm.h>
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/shm_inline.h"
+#endif
 #include "../posix/shm_inline.h"
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf, MPI_Aint count,
@@ -27,8 +30,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf, MPI_Aint count,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_SEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_SEND);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     ret =
         MPIDI_POSIX_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+
+#else
+    ret = MPIDI_POSIX_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                               request);
+#endif
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_SEND);
     return ret;
@@ -133,8 +142,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_isend(const void *buf, MPI_Aint count
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_ISEND);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     ret =
         MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+
+#else
+    ret = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                request);
+#endif
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_ISEND);
     return ret;
@@ -196,8 +211,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_recv(void *buf, MPI_Aint count, MPI_D
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_RECV);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    ret =
+        MPIDI_XPMEM_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset, status,
+                             request);
+#else
     ret = MPIDI_POSIX_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset,
                                status, request);
+#endif
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_RECV);
     return ret;
@@ -212,7 +233,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_irecv(void *buf, MPI_Aint count, MPI_
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_IRECV);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    ret = MPIDI_XPMEM_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request);
+#else
     ret = MPIDI_POSIX_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request);
+#endif
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_IRECV);
     return ret;
