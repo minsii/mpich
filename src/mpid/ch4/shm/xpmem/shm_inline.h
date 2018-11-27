@@ -9,15 +9,10 @@
  *  Contributor License Agreement dated February 8, 2012.
  */
 
-#ifndef SHM_PRE_H_INCLUDED
-#define SHM_PRE_H_INCLUDED
+#ifndef XPMEM_INLINE_H_INCLUDED
+#define XPMEM_INLINE_H_INCLUDED
 
-#include <mpi.h>
+/* Not-inlined shm functions */
+#include "xpmem_noinline.h"
 
-#include "../posix/posix_pre.h"
-#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../xpmem/xpmem_pre.h"
-#endif
-
-#include "shm_coll_params.h"
-#endif /* SHM_PRE_H_INCLUDED */
+#endif /* XPMEM_INLINE_H_INCLUDED */

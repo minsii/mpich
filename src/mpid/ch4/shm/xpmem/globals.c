@@ -4,20 +4,12 @@
  *      See COPYRIGHT in top-level directory.
  *
  *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
+ *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
  *  to Argonne National Laboratory subject to Software Grant and Corporate
  *  Contributor License Agreement dated February 8, 2012.
  */
 
-#ifndef SHM_PRE_H_INCLUDED
-#define SHM_PRE_H_INCLUDED
+#include "mpidimpl.h"
+#include "xpmem_impl.h"
 
-#include <mpi.h>
-
-#include "../posix/posix_pre.h"
-#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../xpmem/xpmem_pre.h"
-#endif
-
-#include "shm_coll_params.h"
-#endif /* SHM_PRE_H_INCLUDED */
+MPIDI_XPMEM_global_t MPIDI_XPMEM_global = { 0 };
