@@ -10,6 +10,9 @@
 
 #include <shm.h>
 #include "../posix/shm_inline.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/shm_inline.h"
+#endif
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_comm_create_hook(MPIR_Comm * comm)
 {
@@ -91,15 +94,23 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_op_free_hook(MPIR_Op * op)
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_win_create_hook(MPIR_Win * win)
 {
-    int ret;
+    int mpi_errno;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_WIN_CREATE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_WIN_CREATE_HOOK);
 
-    ret = MPIDI_POSIX_mpi_win_create_hook(win);
+    mpi_errno = MPIDI_POSIX_mpi_win_create_hook(win);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+    mpi_errno = MPIDI_XPMEM_mpi_win_create_hook(win);
+#endif
 
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_WIN_CREATE_HOOK);
-    return ret;
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_win_allocate_hook(MPIR_Win * win)
@@ -170,15 +181,23 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_win_detach_hook(MPIR_Win * win, const
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_win_free_hook(MPIR_Win * win)
 {
-    int ret;
+    int mpi_errno;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_WIN_FREE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_WIN_FREE_HOOK);
 
-    ret = MPIDI_POSIX_mpi_win_free_hook(win);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    mpi_errno = MPIDI_XPMEM_mpi_win_free_hook(win);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+#endif
+    mpi_errno = MPIDI_POSIX_mpi_win_free_hook(win);
 
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_WIN_FREE_HOOK);
-    return ret;
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_rma_win_cmpl_hook(MPIR_Win * win)
