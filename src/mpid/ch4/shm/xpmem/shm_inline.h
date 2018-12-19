@@ -15,4 +15,9 @@
 #include "xpmem_recv.h"
 #include "xpmem_init.h"
 #include "xpmem_win.h"
+#include "xpmem_am.h"
+#include "xpmem_impl.h"
+#include "xpmem_pre.h"
+#include "xpmem_progress.h"
+
 #endif /* XPMEM_INLINE_H_INCLUDED */

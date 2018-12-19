@@ -23,7 +23,9 @@
 #ifdef HAVE_USLEEP
 #include <unistd.h>
 #endif
-
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include <xpmem.h>
+#endif
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
 
@@ -95,7 +97,7 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided)
 /* Global variables can be initialized here */
 MPIR_Process_t MPIR_Process = { OPA_INT_T_INITIALIZER(MPICH_MPI_STATE__PRE_INIT) };
 
-     /* all other fields in MPIR_Process are irrelevant */
+/* all other fields in MPIR_Process are irrelevant */
 MPIR_Thread_info_t MPIR_ThreadInfo = { 0 };
 
 #if defined(MPICH_IS_THREADED) && defined(MPL_TLS_SPECIFIER)
@@ -213,7 +215,7 @@ static int thread_cs_init(void)
     int err;
 
 #if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL
-/* There is a single, global lock, held for the duration of an MPI call */
+    /* There is a single, global lock, held for the duration of an MPI call */
     MPID_Thread_mutex_create(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
     MPIR_Assert(err == 0);
 
@@ -239,12 +241,12 @@ static int thread_cs_init(void)
     MPIR_Assert(err == 0);
 
 #elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__LOCKFREE
-/* Updates to shared data and access to shared services is handled without
-   locks where ever possible. */
+    /* Updates to shared data and access to shared services is handled without
+     * locks where ever possible. */
 #error lock-free not yet implemented
 
 #elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__SINGLE
-/* No thread support, make all operations a no-op */
+    /* No thread support, make all operations a no-op */
 
 #else
 #error Unrecognized thread granularity
@@ -266,7 +268,7 @@ int MPIR_Thread_CS_Finalize(void)
 
     MPL_DBG_MSG(MPIR_DBG_INIT, TYPICAL, "Freeing global mutex and private storage");
 #if MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__GLOBAL
-/* There is a single, global lock, held for the duration of an MPI call */
+    /* There is a single, global lock, held for the duration of an MPI call */
     MPID_Thread_mutex_destroy(&MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX, &err);
     MPIR_Assert(err == 0);
 
@@ -293,12 +295,12 @@ int MPIR_Thread_CS_Finalize(void)
     MPIR_Assert(err == 0);
 
 #elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__LOCKFREE
-/* Updates to shared data and access to shared services is handled without
-   locks where ever possible. */
+    /* Updates to shared data and access to shared services is handled without
+     * locks where ever possible. */
 #error lock-free not yet implemented
 
 #elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__SINGLE
-/* No thread support, make all operations a no-op */
+    /* No thread support, make all operations a no-op */
 
 #else
 #error Unrecognized thread granularity
@@ -343,6 +345,13 @@ MPL_dbg_class MPIR_DBG_REQUEST;
 MPL_dbg_class MPIR_DBG_ASSERT;
 MPL_dbg_class MPIR_DBG_STRING;
 #endif /* MPL_USE_DBG_LOGGING */
+
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+int MPID_Init_xpmem();
+int xpmem_local_rank;
+xpmem_segid_t *MPIDI_CH4_shm_xpmem_local_handler_arrays;
+xpmem_apid_t *MPIDI_CH4_shm_xpmem_local_apid_arrays;
+#endif
 
 #undef FUNCNAME
 #define FUNCNAME MPIR_Init_thread
@@ -675,6 +684,8 @@ int MPIR_Init_thread(int *argc, char ***argv, int required, int *provided)
 #if defined(MPICH_IS_THREADED)
     MPIR_Thread_CS_Finalize();
 #endif
+
+
     return mpi_errno;
     /* --END ERROR HANDLING-- */
 }
@@ -788,6 +799,11 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided)
         }
 #endif
     }
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    mpi_errno = MPID_Init_xpmem();
+    if (mpi_errno != MPI_SUCCESS)
+        goto fn_fail;
+#endif
 
     /* ... end of body of routine ... */
 
@@ -811,4 +827,59 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided)
 
     return mpi_errno;
     /* --END ERROR HANDLING-- */
+}
+
+
+int MPID_Init_xpmem()
+{
+    int i;
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Comm *comm_ptr = NULL;
+    xpmem_segid_t local_handler;
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
+
+    MPIR_Comm_get_ptr(MPI_COMM_WORLD, comm_ptr);
+    size_t local_pnum;
+    if (comm_ptr->node_comm == NULL) {
+        local_pnum = 1;
+        xpmem_local_rank = 0;
+    } else {
+        local_pnum = comm_ptr->node_comm->local_size;
+        xpmem_local_rank = comm_ptr->node_comm->rank;
+    }
+
+    MPIDI_CH4_shm_xpmem_local_handler_arrays =
+        (xpmem_segid_t *) MPL_malloc(sizeof(xpmem_segid_t) * local_pnum, MPL_MEM_OTHER);
+    MPIDI_CH4_shm_xpmem_local_apid_arrays =
+        (xpmem_apid_t *) MPL_malloc(sizeof(xpmem_apid_t) * local_pnum, MPL_MEM_OTHER);
+
+    local_handler = xpmem_make(0, XPMEM_MAXADDR_SIZE, XPMEM_PERMIT_MODE, (void *) 0666);
+    if (local_handler == -1) {
+        mpi_errno = MPI_ERR_OTHER;
+        goto fn_exit;
+    }
+
+    if (comm_ptr->node_comm != NULL)
+        mpi_errno =
+            MPIR_Allgather(&local_handler, 1, MPI_LONG_LONG,
+                           MPIDI_CH4_shm_xpmem_local_handler_arrays, 1, MPI_LONG_LONG,
+                           comm_ptr->node_comm, &errflag);
+    else
+        MPIDI_CH4_shm_xpmem_local_handler_arrays[0] = local_handler;
+
+    if (mpi_errno)
+        goto fn_exit;
+
+    for (i = 0; i < local_pnum; i++) {
+        MPIDI_CH4_shm_xpmem_local_apid_arrays[i] =
+            xpmem_get(MPIDI_CH4_shm_xpmem_local_handler_arrays[i], XPMEM_RDWR, XPMEM_PERMIT_MODE,
+                      NULL);
+        if (MPIDI_CH4_shm_xpmem_local_apid_arrays[i] == -1) {
+            mpi_errno = MPI_ERR_OTHER;
+            goto fn_exit;
+        }
+    }
+
+  fn_exit:
+    return mpi_errno;
 }

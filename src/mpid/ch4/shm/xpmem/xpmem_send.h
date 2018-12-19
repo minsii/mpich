@@ -12,8 +12,9 @@
 #ifndef XPMEM_SEND_H_INCLUDED
 #define XPMEM_SEND_H_INCLUDED
 
-#include "../posix/posix_send.h"
-
+#include "ch4_impl.h"
+#include "xpmem_am.h"
+#include "xpmem_pre.h"
 
 #undef FCNAME
 #define FCNAME DECL_FUNC(MPIDI_XPMEM_mpi_send)
@@ -23,16 +24,17 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_send(const void *buf, MPI_Aint coun
                                                   MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
 
-    /* Fall back to POSIX send */
-    mpi_errno = MPIDI_POSIX_mpi_send(buf, count, datatype, rank, tag, comm, context_offset,
-                                     addr, request);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_SEND);
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
+    mpi_errno =
+        MPIDI_XPMEM_am_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                 request, MPIDI_BLOCKING, MPIDI_CH4U_XPMEM_CONTIG);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_SEND);
     return mpi_errno;
-
 }
 
 
@@ -44,15 +46,20 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_isend(const void *buf, MPI_Aint cou
                                                    MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int mpi_errno = MPI_SUCCESS;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
 
-    /* Fall back to POSIX isend */
-    mpi_errno = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset,
-                                      addr, request);
+    mpi_errno =
+        MPIDI_XPMEM_am_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                 request, MPIDI_NONBLOCKING, MPIDI_CH4U_XPMEM_CONTIG);
 
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_ISEND);
     return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
 }
 
 #endif /* XPMEM_SEND_H_INCLUDED */

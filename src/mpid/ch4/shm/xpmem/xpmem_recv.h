@@ -12,7 +12,8 @@
 #ifndef XPMEM_RECV_H_INCLUDED
 #define XPMEM_RECV_H_INCLUDED
 
-#include "../posix/posix_recv.h"
+#include "ch4_impl.h"
+#include "../../generic/mpidig_recv.h"
 
 #undef FCNAME
 #define FCNAME MPL_QUOTE(MPIDI_XPMEM_mpi_recv)
@@ -25,16 +26,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_recv(void *buf,
                                                   int context_offset, MPI_Status * status,
                                                   MPIR_Request ** request)
 {
-
     int mpi_errno = MPI_SUCCESS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_RECV);
 
-    /* Fall back to POSIX recv */
-    mpi_errno = MPIDI_POSIX_mpi_recv(buf, count, datatype, rank, tag, comm,
-                                     context_offset, status, request);
+    mpi_errno =
+        MPIDIG_mpi_recv(buf, count, datatype, rank, tag, comm, context_offset, status, request);
 
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_RECV);
     return mpi_errno;
 }
@@ -55,9 +55,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_irecv(void *buf,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_IRECV);
 
-    /* Fall back to POSIX irecv */
-    mpi_errno = MPIDI_POSIX_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset,
-                                      request);
+    mpi_errno = MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_IRECV);
     return mpi_errno;

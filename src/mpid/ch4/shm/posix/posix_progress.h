@@ -282,6 +282,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking)
 
         DL_DELETE(MPIDI_POSIX_global.postponed_queue, curr_sreq_hdr);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+        /* Free XPMEM header after sending the data */
+        if (curr_sreq_hdr->msg_hdr_buf.handler_id == MPIDI_CH4U_XPMEM_CONTIG) {
+            MPL_free(curr_sreq_hdr->iov[1].iov_base);
+        }
+#endif
         /* Request has been completed.
          * If associated with a device-layer sreq, call origin callback and cleanup.
          * Otherwise this is a POSIX internal queued sreq_hdr, simply release. */
@@ -316,10 +322,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int blocking)
     int mpi_errno = MPI_SUCCESS;
 
     mpi_errno = MPIDI_POSIX_progress_recv(blocking);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
-
-    mpi_errno = MPIDI_POSIX_progress_send(blocking);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 

@@ -11,6 +11,7 @@
 #ifndef XPMEM_PRE_H_INCLUDED
 #define XPMEM_PRE_H_INCLUDED
 
+#include <mpi.h>
 #include <xpmem.h>
 
 typedef struct {
@@ -41,5 +42,32 @@ typedef struct {
 } MPIDI_XPMEM_win_t;
 
 extern MPIDI_XPMEM_global_t MPIDI_XPMEM_global;
+
+/* ---------------------------------------------------- */
+/* XPMEM auxiliary macros                               */
+/* ---------------------------------------------------- */
+
+#define MPIDI_XPMEM_ACK_TAG 0x8f5f6f7f
+#define MPIDI_XPMEM_HEAD_COUNT 5
+#define MPIDI_NONBLOCKING 0
+#define MPIDI_BLOCKING    1
+
+#define MPIDI_XPMEM_PAGE_SIZE (4096LL)
+#define MPIDI_XPMEM_PAGE_MASK (MPIDI_XPMEM_PAGE_SIZE - 1LL)
+#define MPIDI_XPMEM_PAGE_ALIGN_FLOOR(addr) ((addr) & ~MPIDI_XPMEM_PAGE_MASK)
+#define MPIDI_XPMEM_PAGE_ALIGN_CEIL(addr) ((addr) & MPIDI_XPMEM_PAGE_MASK ? (((addr) & ~MPIDI_XPMEM_PAGE_MASK) + MPIDI_XPMEM_PAGE_SIZE) : (addr))
+
+/* ---------------------------------------------------- */
+/* XPMEM structs                                        */
+/* ---------------------------------------------------- */
+
+typedef struct MPIDI_XPMEM_head {
+    uint32_t local_rank;
+    uint8_t pad[4];
+    uint64_t data_sz;
+    uint64_t expose_sz;
+    uint64_t data_offset;
+    uint64_t expose_offset;
+} MPIDI_XPMEM_head;
 
 #endif /* XPMEM_PRE_H_INCLUDED */

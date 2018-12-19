@@ -169,4 +169,85 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_get_node_ranks(MPIR_Comm * shm_comm_ptr
     goto fn_exit;
 }
 
+
+/* ---------------------------------------------------- */
+/* XPMEM extern variables                               */
+/* ---------------------------------------------------- */
+extern int xpmem_local_rank;
+extern xpmem_apid_t *MPIDI_CH4_shm_xpmem_local_apid_arrays;
+
+/* ---------------------------------------------------- */
+/* XPMEM auxiliary functions                            */
+/* ---------------------------------------------------- */
+
+#undef FCNAME
+#define FCNAME DECL_FUNC(MPIDI_XPMEM_expose)
+MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_expose(const void *buf, size_t data_sz,
+                                                MPIDI_XPMEM_head * header)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_EXPOSE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_EXPOSE);
+
+    long long floor_addr = MPIDI_XPMEM_PAGE_ALIGN_FLOOR((long long) buf);
+    long long ceil_addr = MPIDI_XPMEM_PAGE_ALIGN_CEIL((long long) buf + data_sz);
+    size_t expose_sz = ceil_addr - floor_addr;
+    long long data_offset = (long long) buf - floor_addr;
+    int mpi_errno = MPI_SUCCESS;
+
+    header->data_sz = data_sz;
+    header->data_offset = data_offset;
+    header->expose_sz = expose_sz;
+    header->expose_offset = floor_addr;
+    header->local_rank = xpmem_local_rank;
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_EXPOSE);
+    return mpi_errno;
+}
+
+
+#undef FCNAME
+#define FCNAME DECL_FUNC(MPIDI_XPMEM_attach)
+MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_attach(MPIDI_XPMEM_head * header, void **data_buf,
+                                                void **exp_buf)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_ATTACH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_ATTACH);
+    int mpi_errno = MPI_SUCCESS;
+    struct xpmem_addr addr;
+
+    addr.apid = MPIDI_CH4_shm_xpmem_local_apid_arrays[header->local_rank];
+    addr.offset = header->expose_offset;
+
+    /* KTODO: cache attached pages */
+    *exp_buf = xpmem_attach(addr, header->expose_sz, NULL);
+    if ((long long) *exp_buf == -1LL) {
+        mpi_errno = MPI_ERR_OTHER;
+        goto fn_exit;
+    }
+
+    *data_buf = (void *) ((__s64) * exp_buf + header->data_offset);
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_ATTACH);
+    return mpi_errno;
+}
+
+
+#undef FCNAME
+#define FCNAME DECL_FUNC(MPIDI_XPMEM_detach)
+MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_detach(void *exp_buf)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_DETACH);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_DETACH);
+    int mpi_errno = MPI_SUCCESS;
+
+    if (xpmem_detach(exp_buf) == -1) {
+        mpi_errno = MPI_ERR_OTHER;
+        goto fn_exit;
+    }
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_DETACH);
+    return mpi_errno;
+}
 #endif /* XPMEM_IMPL_H_INCLUDED */

@@ -14,7 +14,13 @@
 
 #include <mpidimpl.h>
 
+enum {
+    MPIDI_SHM_GO_XPMEM = 0,
+    MPIDI_SHM_GO_POSIX
+};
+
 #define MPIDI_MAX_SHM_STRING_LEN 64
+#define MPIDI_SHM_FALLBACK_THRESHOLD (16 * 1024 - sizeof(uint64_t) - 2 * sizeof(int))
 
 /* These typedef function definitions are used when not inlining the shared memory module along
  * with the struct of function pointers below. */

@@ -59,6 +59,12 @@ int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self, int n_vnis)
                                                            MPIDI_CH4I_BUF_POOL_SZ);
     MPIR_Assert(MPIDI_CH4_Global.buf_pool);
 
+    mpi_errno =
+        MPIDIG_am_reg_cb(MPIDI_CH4U_XPMEM_CONTIG, &MPIDI_shm_xpmem_send_origin_cb,
+                         &MPIDI_shm_xpmem_send_target_msg_cb);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
     mpi_errno = MPIDIG_am_reg_cb(MPIDI_CH4U_SEND, &MPIDI_send_origin_cb, &MPIDI_send_target_msg_cb);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);

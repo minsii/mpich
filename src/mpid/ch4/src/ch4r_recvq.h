@@ -15,6 +15,9 @@
 #include "mpidig.h"
 #include "utlist.h"
 #include "ch4_impl.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../shm/xpmem/xpmem_pre.h"
+#endif
 
 extern unsigned PVAR_LEVEL_posted_recvq_length ATTRIBUTE((unused));
 extern unsigned PVAR_LEVEL_unexpected_recvq_length ATTRIBUTE((unused));
@@ -29,16 +32,27 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_match_posted(int rank, int tag,
     return (rank == MPIDI_CH4U_REQUEST(req, rank) ||
             MPIDI_CH4U_REQUEST(req, rank) == MPI_ANY_SOURCE) &&
         (tag == MPIR_TAG_MASK_ERROR_BITS(MPIDI_CH4U_REQUEST(req, tag)) ||
-         MPIDI_CH4U_REQUEST(req, tag) == MPI_ANY_TAG) &&
-        context_id == MPIDI_CH4U_REQUEST(req, context_id);
+         (MPIDI_CH4U_REQUEST(req, tag) == MPI_ANY_TAG
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+          && tag != MPIDI_XPMEM_ACK_TAG
+#endif
+)) && context_id == MPIDI_CH4U_REQUEST(req, context_id);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDIG_match_unexp(int rank, int tag,
                                                 MPIR_Context_id_t context_id, MPIR_Request * req)
 {
     return (rank == MPIDI_CH4U_REQUEST(req, rank) || rank == MPI_ANY_SOURCE) &&
-        (tag == MPIR_TAG_MASK_ERROR_BITS(MPIDI_CH4U_REQUEST(req, tag)) ||
-         tag == MPI_ANY_TAG) && context_id == MPIDI_CH4U_REQUEST(req, context_id);
+        (tag == MPIR_TAG_MASK_ERROR_BITS(MPIDI_CH4U_REQUEST(req, tag)) || (tag == MPI_ANY_TAG
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+                                                                           &&
+                                                                           MPIR_TAG_MASK_ERROR_BITS
+                                                                           (MPIDI_CH4U_REQUEST
+                                                                            (req,
+                                                                             tag)) !=
+                                                                           MPIDI_XPMEM_ACK_TAG
+#endif
+)) && context_id == MPIDI_CH4U_REQUEST(req, context_id);
 }
 
 #undef FUNCNAME

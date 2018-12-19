@@ -417,6 +417,7 @@ static inline int MPIDI_send_origin_cb(MPIR_Request * sreq)
     return mpi_errno;
 }
 
+
 #undef FUNCNAME
 #define FUNCNAME MPIDI_send_long_lmt_origin_cb
 #undef FCNAME
@@ -867,5 +868,51 @@ static inline int MPIDI_comm_abort_target_msg_cb(int handler_id, void *am_hdr,
     MPL_exit(hdr->tag);
     return MPI_SUCCESS;
 }
+
+
+/* XPMEM send callbacks */
+#undef FUNCNAME
+#define FUNCNAME MPIDI_shm_xpmem_send_origin_cb
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static inline int MPIDI_shm_xpmem_send_origin_cb(MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_XPMEM_SEND_ORIGIN_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_XPMEM_SEND_ORIGIN_CB);
+    MPID_Request_complete(sreq);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_DYNAMIC_SHM_SEND_ORIGIN_CB);
+    return mpi_errno;
+}
+
+/* This XPMEM receive callback relys on POSIX callback MPIDI_CH4U_SEND.
+   If anything is changed in MPIDI_CH4U_SEND callback, this callback should
+   change accordingly. */
+#undef FUNCNAME
+#define FUNCNAME MPIDI_shm_xpmem_send_target_msg_cb
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static inline int MPIDI_shm_xpmem_send_target_msg_cb(int handler_id, void *am_hdr,
+                                                     void **data,
+                                                     size_t * p_data_sz,
+                                                     int is_local,
+                                                     int *is_contig,
+                                                     MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
+                                                     MPIR_Request ** rreq)
+{
+    int ret;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_XPMEM_SEND_TARGET_MSG_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_XPMEM_SEND_TARGET_MSG_CB);
+
+    ret = MPIDI_send_target_msg_cb(MPIDI_CH4U_SEND,
+                                   am_hdr, data, p_data_sz, is_local, is_contig, target_cmpl_cb,
+                                   rreq);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_XPMEM_SEND_TARGET_MSG_CB);
+    return ret;
+}
+
+/* XPMEM callbacks */
 
 #endif /* CH4R_CALLBACKS_H_INCLUDED */

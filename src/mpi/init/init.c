@@ -9,6 +9,9 @@
 
 #include <strings.h>
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include <xpmem.h>
+#endif
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
 
@@ -69,6 +72,12 @@ int MPI_Init(int *argc, char ***argv) __attribute__ ((weak, alias("PMPI_Init")))
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_Init
 #define MPI_Init PMPI_Init
+
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+extern xpmem_segid_t *MPIDI_CH4_shm_xpmem_local_handler_arrays;
+extern xpmem_apid_t *MPIDI_CH4_shm_xpmem_local_apid_arrays;
+int MPID_Init_xpmem();
+#endif
 
 /* Fortran logical values. extern'd in mpiimpl.h */
 /* MPI_Fint MPII_F_TRUE, MPII_F_FALSE; */
@@ -197,6 +206,11 @@ int MPI_Init(int *argc, char ***argv)
         }
 #endif
     }
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    mpi_errno = MPID_Init_xpmem();
+    if (mpi_errno != MPI_SUCCESS)
+        goto fn_fail;
+#endif
 
     /* ... end of body of routine ... */
     MPIR_FUNC_TERSE_INIT_EXIT(MPID_STATE_MPI_INIT);
