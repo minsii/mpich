@@ -130,8 +130,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_win_free_hook(MPIR_Win * win)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_WIN_FREE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_WIN_FREE_HOOK);
 
-    if (!shm_comm_ptr || !MPIDI_CH4U_WIN(win, shm_allocated) ||
-        win->create_flavor != MPI_WIN_FLAVOR_CREATE)
+    if (!shm_comm_ptr || win->create_flavor != MPI_WIN_FLAVOR_CREATE ||
+        !MPIDI_CH4U_WIN(win, shared_table))
         goto fn_exit;
 
     /* Deregister segments for remote processes */

@@ -530,6 +530,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_win_detach_hook(MPIR_Win * win ATTR
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win, int *inited_flag)
 {
     int mpi_errno = MPI_SUCCESS;
+    bool mapfail_flag = false;
     MPIDI_POSIX_win_t *posix_win ATTRIBUTE((unused)) = NULL;
     MPIR_Comm *shm_comm_ptr = win->comm_ptr->node_comm;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_SHM_WIN_INIT_HOOK);
@@ -545,12 +546,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win, int *
     /* allocate interprocess mutex for RMA atomics over shared memory */
     mpi_errno = MPIDI_CH4U_allocate_shm_segment(shm_comm_ptr, sizeof(MPL_proc_mutex_t),
                                                 &posix_win->shm_mutex_segment_handle,
-                                                (void **) &posix_win->shm_mutex_ptr);
+                                                (void **) &posix_win->shm_mutex_ptr, &mapfail_flag);
 
-    if (shm_comm_ptr->rank == 0)
-        MPIDI_POSIX_RMA_MUTEX_INIT(posix_win->shm_mutex_ptr);
+    if (!mapfail_flag) {
+        if (shm_comm_ptr->rank == 0)
+            MPIDI_POSIX_RMA_MUTEX_INIT(posix_win->shm_mutex_ptr);
 
-    *inited_flag = 1;
+        *inited_flag = 1;
+    }
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_SHM_WIN_INIT_HOOK);

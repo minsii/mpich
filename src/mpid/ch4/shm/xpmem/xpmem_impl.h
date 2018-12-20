@@ -17,6 +17,7 @@
 
 #define MPIDI_XPMEM_PERMIT_VALUE ((void *)0600)
 
+#define XPMEM_DEBUG
 #ifdef XPMEM_DEBUG
 #define XPMEM_DBG_PRINT(stmt,...) do {                                         \
     printf("[%d] XPMEM "stmt, MPIR_Process.comm_world->rank, ## __VA_ARGS__);  \
