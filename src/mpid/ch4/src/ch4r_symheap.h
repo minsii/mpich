@@ -429,7 +429,7 @@ static inline int MPIDI_CH4I_allreduce_maxloc(size_t mysz, int myloc, MPIR_Comm 
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_CH4R_get_shm_symheap(MPI_Aint shm_size, MPI_Aint * shm_offsets,
-                                             MPIR_Comm * comm, MPIR_Win * win, int *fail_flag)
+                                             MPIR_Comm * comm, MPIR_Win * win, bool * fail_flag)
 {
     int mpi_errno = MPI_SUCCESS;
     int iter = MPIR_CVAR_CH4_SHM_SYMHEAP_RETRY;
@@ -446,7 +446,7 @@ static inline int MPIDI_CH4R_get_shm_symheap(MPI_Aint shm_size, MPI_Aint * shm_o
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
     MPIR_Comm *shm_comm_ptr = comm->node_comm;
 
-    *fail_flag = 0;
+    *fail_flag = false;
     mapsize = MPIDI_CH4R_get_mapsize(shm_size, &page_sz);
 
     /* figure out leading process in win */
@@ -521,7 +521,7 @@ static inline int MPIDI_CH4R_get_shm_symheap(MPI_Aint shm_size, MPI_Aint * shm_o
         /* if fail to allocate, return and let the caller choose another method */
         MPL_DBG_MSG(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     "WARNING: Win_allocate:  Unable to allocate global symmetric heap\n");
-        *fail_flag = 1;
+        *fail_flag = true;
     }
 
   fn_exit:

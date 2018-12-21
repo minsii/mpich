@@ -1290,9 +1290,8 @@ static inline int MPIDI_CH4I_win_shm_alloc_impl(MPI_Aint size,
     MPI_Aint *shm_offsets = NULL;
     MPIR_Comm *shm_comm_ptr = comm_ptr->node_comm;
     size_t page_sz = 0, mapsize;
-    int mapfail_flag = 0;
-    bool shm_mapfail_flag = false;
-    unsigned symheap_flag = 1, global_symheap_flag = 0;
+    bool symheap_mapfail_flag = false, shm_mapfail_flag = false;
+    bool symheap_flag = true, global_symheap_flag = false;
 
     MPIR_CHKPMEM_DECL(2);
     MPIR_CHKLMEM_DECL(1);
@@ -1349,7 +1348,7 @@ static inline int MPIDI_CH4I_win_shm_alloc_impl(MPI_Aint size,
         /* if my size is not page aligned and noncontig is disabled, skip global symheap. */
         if (size != MPIDI_CH4R_get_mapsize(size, &page_sz) &&
             !MPIDI_CH4U_WIN(win, info_args).alloc_shared_noncontig)
-            symheap_flag = 0;
+            symheap_flag = false;
     } else
         total_shm_size = size;
 
@@ -1362,11 +1361,11 @@ static inline int MPIDI_CH4I_win_shm_alloc_impl(MPI_Aint size,
          *   thus all process can be assigned to a page aligned start address.
          * - user sets alloc_shared_noncontig=true, thus we can internally make
          *   the size aligned on each process. */
-        mpi_errno = MPIR_Allreduce(&symheap_flag, &global_symheap_flag, 1, MPI_UNSIGNED,
-                                   MPI_BAND, comm_ptr, &errflag);
+        mpi_errno = MPIR_Allreduce(&symheap_flag, &global_symheap_flag, 1, MPI_C_BOOL,
+                                   MPI_LAND, comm_ptr, &errflag);
         MPIR_ERR_CHKANDJUMP(errflag, mpi_errno, MPI_ERR_OTHER, "**coll_fail");
     } else
-        global_symheap_flag = 0;
+        global_symheap_flag = false;
 
     /* because MPI_shm follows a create & attach mode, we need to set the
      * size of entire shared memory segment on each node as the size of
@@ -1376,13 +1375,14 @@ static inline int MPIDI_CH4I_win_shm_alloc_impl(MPI_Aint size,
     /* first try global symmetric heap segment allocation */
     if (global_symheap_flag) {
         MPIDI_CH4U_WIN(win, mmap_sz) = mapsize;
-        mpi_errno = MPIDI_CH4R_get_shm_symheap(mapsize, shm_offsets, comm_ptr, win, &mapfail_flag);
+        mpi_errno = MPIDI_CH4R_get_shm_symheap(mapsize, shm_offsets, comm_ptr, win,
+                                               &symheap_mapfail_flag);
         if (mpi_errno != MPI_SUCCESS)
             goto fn_fail;
     }
 
     /* if symmetric heap is disabled or fails, try normal shm segment allocation */
-    if (!global_symheap_flag || mapfail_flag) {
+    if (!global_symheap_flag || symheap_mapfail_flag) {
         if (shm_comm_ptr != NULL && mapsize) {
             MPIDI_CH4U_WIN(win, mmap_sz) = mapsize;
             mpi_errno = MPIDI_CH4U_allocate_shm_segment(shm_comm_ptr, mapsize,
