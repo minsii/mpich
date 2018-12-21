@@ -362,7 +362,8 @@ static inline int MPIDI_CH4R_win_init(MPI_Aint length,
     MPIR_ERR_CHKANDSTMT(win == NULL, mpi_errno, MPI_ERR_NO_MEM, goto fn_fail, "**nomem");
     *win_ptr = win;
 
-    memset(&win->dev.ch4u, 0, sizeof(MPIDI_CH4U_win_t));
+    /* Reset ch4u, netmod, shm */
+    memset(&win->dev, 0, sizeof(MPIDI_Devwin_t));
 
     /* Duplicate the original communicator here to avoid having collisions
      * between internal collectives */

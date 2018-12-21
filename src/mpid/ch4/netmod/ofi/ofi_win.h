@@ -1240,6 +1240,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free_hook(MPIR_Win * win)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_FREE_HOOK);
 
     if (MPIDI_OFI_ENABLE_RMA) {
+        /* ofi window is not initialized */
+        if (!MPIDI_OFI_WIN(win).win_id)
+            goto fn_exit;
+
         MPIDI_OFI_rma_key_unpack(MPIDI_OFI_WIN(win).win_id, NULL, &key_type, &window_instance);
         MPIR_Assert(key_type == MPIDI_OFI_KEY_TYPE_WINDOW);
 
