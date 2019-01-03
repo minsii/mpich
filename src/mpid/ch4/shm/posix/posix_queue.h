@@ -39,7 +39,7 @@
 #define FUNCNAME MPIDI_POSIX_cell_init
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDI_POSIX_cell_init(MPIDI_POSIX_cell_ptr_t cell, int rank)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_cell_init(MPIDI_POSIX_cell_ptr_t cell, int rank)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_CELL_INIT);
 
@@ -58,7 +58,7 @@ static inline void MPIDI_POSIX_cell_init(MPIDI_POSIX_cell_ptr_t cell, int rank)
 #define FUNCNAME MPIDI_POSIX_queue_init
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_QUEUE_INIT);
 
@@ -73,8 +73,10 @@ static inline void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
 
 #define MPIDI_POSIX_USE_SHADOW_HEAD
 
-static inline MPIDI_POSIX_cell_rel_ptr_t MPIDI_POSIX_SWAP_REL(MPIDI_POSIX_cell_rel_ptr_t * ptr,
-                                                              MPIDI_POSIX_cell_rel_ptr_t val)
+MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_cell_rel_ptr_t MPIDI_POSIX_SWAP_REL(MPIDI_POSIX_cell_rel_ptr_t
+                                                                         * ptr,
+                                                                         MPIDI_POSIX_cell_rel_ptr_t
+                                                                         val)
 {
     MPIDI_POSIX_cell_rel_ptr_t ret;
     OPA_store_ptr(&ret.p, OPA_swap_ptr(&(ptr->p), OPA_load_ptr(&val.p)));
@@ -82,16 +84,16 @@ static inline MPIDI_POSIX_cell_rel_ptr_t MPIDI_POSIX_SWAP_REL(MPIDI_POSIX_cell_r
 }
 
 /* do a compare-and-swap with MPIDI_POSIX_RELNULL */
-static inline MPIDI_POSIX_cell_rel_ptr_t MPIDI_POSIX_CAS_REL_NULL(MPIDI_POSIX_cell_rel_ptr_t * ptr,
-                                                                  MPIDI_POSIX_cell_rel_ptr_t oldv)
+MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_cell_rel_ptr_t
+MPIDI_POSIX_CAS_REL_NULL(MPIDI_POSIX_cell_rel_ptr_t * ptr, MPIDI_POSIX_cell_rel_ptr_t oldv)
 {
     MPIDI_POSIX_cell_rel_ptr_t ret;
     OPA_store_ptr(&ret.p, OPA_cas_ptr(&(ptr->p), OPA_load_ptr(&oldv.p), MPIDI_POSIX_REL_NULL));
     return ret;
 }
 
-static inline void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
-                                             MPIDI_POSIX_cell_ptr_t element)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
+                                                        MPIDI_POSIX_cell_ptr_t element)
 {
     MPIDI_POSIX_cell_rel_ptr_t r_prev;
     MPIDI_POSIX_cell_rel_ptr_t r_element = MPIDI_POSIX_ABS_TO_REL(element);
@@ -134,13 +136,14 @@ static inline void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
 /* This operation is only safe because this is a single-dequeuer queue impl.
    Assumes that MPIDI_POSIX_queue_empty was called immediately prior to fix up any
    shadow head issues. */
-static inline MPIDI_POSIX_cell_ptr_t MPIDI_POSIX_queue_head(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_cell_ptr_t MPIDI_POSIX_queue_head(MPIDI_POSIX_queue_ptr_t
+                                                                       qhead)
 {
     MPIDI_POSIX_Q_assert(MPIDI_POSIX_IS_REL_NULL(qhead->head));
     return MPIDI_POSIX_REL_TO_ABS(qhead->my_head);
 }
 
-static inline int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
 {
     /* outside of this routine my_head and head should never both
      * contain a non-null value */
@@ -171,8 +174,8 @@ static inline int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
 
 
 /* Gets the head */
-static inline void MPIDI_POSIX_queue_dequeue(MPIDI_POSIX_queue_ptr_t qhead,
-                                             MPIDI_POSIX_cell_ptr_t * e)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_dequeue(MPIDI_POSIX_queue_ptr_t qhead,
+                                                        MPIDI_POSIX_cell_ptr_t * e)
 {
     MPIDI_POSIX_cell_ptr_t _e;
     MPIDI_POSIX_cell_rel_ptr_t _r_e;
@@ -237,7 +240,7 @@ static inline void MPIDI_POSIX_queue_dequeue(MPIDI_POSIX_queue_ptr_t qhead,
 #define FUNCNAME MPIDI_POSIX_queue_init
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
 {
     int err = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_QUEUE_INIT);
@@ -252,8 +255,8 @@ static inline void MPIDI_POSIX_queue_init(MPIDI_POSIX_queue_ptr_t qhead)
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_QUEUE_INIT);
 }
 
-static inline void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
-                                             MPIDI_POSIX_cell_ptr_t element)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
+                                                        MPIDI_POSIX_cell_ptr_t element)
 {
     int err = 0;
     MPIDI_POSIX_cell_rel_ptr_t r_prev;
@@ -274,7 +277,8 @@ static inline void MPIDI_POSIX_queue_enqueue(MPIDI_POSIX_queue_ptr_t qhead,
 }
 
 /* This operation is only safe because this is a single-dequeuer queue impl. */
-static inline MPIDI_POSIX_cell_ptr_t MPIDI_POSIX_queue_head(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_cell_ptr_t MPIDI_POSIX_queue_head(MPIDI_POSIX_queue_ptr_t
+                                                                       qhead)
 {
     return MPIDI_POSIX_REL_TO_ABS(qhead->my_head);
 }
@@ -283,7 +287,7 @@ static inline MPIDI_POSIX_cell_ptr_t MPIDI_POSIX_queue_head(MPIDI_POSIX_queue_pt
    true, but it's not uncommon.  We often need to use these "lock-ful" queues on
    platforms where atomics are not yet implemented, so we can't rely on the
    atomics to provide atomic load/store operations for us. */
-static inline int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
 {
     if (MPIDI_POSIX_IS_REL_NULL(qhead->my_head)) {
         if (MPIDI_POSIX_IS_REL_NULL(qhead->head)) {
@@ -297,8 +301,8 @@ static inline int MPIDI_POSIX_queue_empty(MPIDI_POSIX_queue_ptr_t qhead)
     return 0;
 }
 
-static inline void MPIDI_POSIX_queue_dequeue(MPIDI_POSIX_queue_ptr_t qhead,
-                                             MPIDI_POSIX_cell_ptr_t * e)
+MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_queue_dequeue(MPIDI_POSIX_queue_ptr_t qhead,
+                                                        MPIDI_POSIX_cell_ptr_t * e)
 {
     int err = 0;
     MPIDI_POSIX_cell_ptr_t _e;
