@@ -39,6 +39,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
     MPIDI_POSIX_am_header_t *msg_hdr;
     uint8_t *payload;
     size_t payload_left;
+    void *ext_am_hdr;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_PROGRESS_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_PROGRESS_RECV);
@@ -58,7 +59,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
 
     if (msg_hdr) {
         am_hdr = payload;
-        p_data = payload + msg_hdr->am_hdr_sz;
+
+        ext_am_hdr = payload + msg_hdr->am_hdr_sz;
+        p_data = (uint8_t *) ext_am_hdr + msg_hdr->ext_am_hdr_sz;
 
         in_total_data_sz = msg_hdr->data_sz;
         p_data_sz = msg_hdr->data_sz;
@@ -67,14 +70,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
          * to match the message (if appropriate) and return a request if the message was matched. */
         MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id,
                                                            am_hdr,
+                                                           ext_am_hdr, msg_hdr->ext_am_hdr_sz,
                                                            &p_data,
                                                            &p_data_sz,
                                                            1 /* is_local */ , &is_contig,
                                                            &target_cmpl_cb, &rreq);
         POSIX_TRACE("POSIX AM target callback: handler_id = %d, am_hdr = %p, p_data = %p "
-                    "p_data_sz = %lu, is_contig = %d, target_cmpl_cb = %p rreq = %p\n",
-                    msg_hdr->handler_id, am_hdr, p_data, p_data_sz, is_contig, target_cmpl_cb,
-                    rreq);
+                    "ext_am_hdr_sz = %d, p_data_sz = %lu, is_contig = %d, target_cmpl_cb = %p rreq = %p\n",
+                    msg_hdr->handler_id, am_hdr, p_data, msg_hdr->ext_am_hdr_sz, p_data_sz,
+                    is_contig, target_cmpl_cb, rreq);
         payload += msg_hdr->am_hdr_sz;
         payload_left -= msg_hdr->am_hdr_sz;
 
@@ -128,7 +132,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
 
             /* Allocate aux data */
 
-            MPIDI_POSIX_am_init_req_hdr(NULL, 0, &MPIDI_POSIX_AMREQUEST(rreq, req_hdr), rreq);
+            MPIDI_POSIX_am_init_req_hdr(NULL, 0, NULL, 0, &MPIDI_POSIX_AMREQUEST(rreq, req_hdr),
+                                        rreq);
 
             curr_rreq_hdr = MPIDI_POSIX_AMREQUEST(rreq, req_hdr);
 
@@ -259,9 +264,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking)
         curr_sreq_hdr = MPIDI_POSIX_global.postponed_queue;
 
         POSIX_TRACE("Queue OUT HDR [ POSIX AM [handler_id %" PRIu64 ", am_hdr_sz %" PRIu64
-                    ", data_sz %" PRIu64 ", seq_num = %d], request=%p] to %d\n",
+                    ", ext_am_hdr_sz %" PRIu64 ", data_sz %" PRIu64
+                    ", seq_num = %d], request=%p] to %d\n",
                     curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->handler_id : (uint64_t) - 1,
                     curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->am_hdr_sz : (uint64_t) - 1,
+                    curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->ext_am_hdr_sz : (uint64_t) - 1,
                     curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->data_sz : (uint64_t) - 1,
 #ifdef POSIX_AM_DEBUG
                     curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->seq_num : -1,

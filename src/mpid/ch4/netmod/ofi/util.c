@@ -195,6 +195,8 @@ static inline int MPIDI_OFI_get_huge(MPIDI_OFI_send_control_t * info)
 }
 
 int MPIDI_OFI_control_handler(int handler_id, void *am_hdr,
+                              void *ext_am_hdr ATTRIBUTE((unused)),
+                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                               void **data,
                               size_t * data_sz,
                               int is_local,

@@ -141,14 +141,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_accept(const char *port_name, MPI
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_send_hdr(int rank, MPIR_Comm * comm, int handler_id,
-                                                  const void *am_hdr, size_t am_hdr_sz)
+                                                  const void *am_hdr, size_t am_hdr_sz,
+                                                  const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int ret;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_SEND_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_SEND_HDR);
 
-    ret = MPIDI_NM_func->am_send_hdr(rank, comm, handler_id, am_hdr, am_hdr_sz);
+    ret = MPIDI_NM_func->am_send_hdr(rank, comm, handler_id, am_hdr, am_hdr_sz,
+                                     ext_am_hdr, ext_am_hdr_sz);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_SEND_HDR);
     return ret;
@@ -190,14 +192,17 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank, MPIR_Comm * comm, int 
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id,
                                                         int src_rank, int handler_id,
-                                                        const void *am_hdr, size_t am_hdr_sz)
+                                                        const void *am_hdr, size_t am_hdr_sz,
+                                                        const void *ext_am_hdr,
+                                                        size_t ext_am_hdr_sz)
 {
     int ret;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_SEND_HDR_REPLY);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_SEND_HDR_REPLY);
 
-    ret = MPIDI_NM_func->am_send_hdr_reply(context_id, src_rank, handler_id, am_hdr, am_hdr_sz);
+    ret = MPIDI_NM_func->am_send_hdr_reply(context_id, src_rank, handler_id, am_hdr, am_hdr_sz,
+                                           ext_am_hdr, ext_am_hdr_sz);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_SEND_HDR_REPLY);
     return ret;

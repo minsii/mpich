@@ -145,12 +145,14 @@ static inline size_t MPIDI_NM_am_hdr_max_sz(void)
 
 static inline int MPIDI_NM_am_send_hdr(int rank,
                                        MPIR_Comm * comm,
-                                       int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                       int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                       const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_NETMOD_OFI_INJECT_AM_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NETMOD_OFI_INJECT_AM_HDR);
-    mpi_errno = MPIDI_OFI_do_inject(rank, comm, handler_id, am_hdr, am_hdr_sz, FALSE, TRUE, TRUE);
+    mpi_errno = MPIDI_OFI_do_inject(rank, comm, handler_id, am_hdr, am_hdr_sz,
+                                    ext_am_hdr, ext_am_hdr_sz, FALSE, TRUE, TRUE);
 
     if (mpi_errno != MPI_SUCCESS)
         MPIR_ERR_POP(mpi_errno);
@@ -164,7 +166,8 @@ static inline int MPIDI_NM_am_send_hdr(int rank,
 
 static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id,
                                              int src_rank,
-                                             int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                             int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                             const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -172,7 +175,8 @@ static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NETMOD_OFI_INJECT_AM_HDR_REPLY);
 
     mpi_errno = MPIDI_OFI_do_inject(src_rank, MPIDI_CH4U_context_id_to_comm(context_id),
-                                    handler_id, am_hdr, am_hdr_sz, TRUE, TRUE, FALSE);
+                                    handler_id, am_hdr, am_hdr_sz, ext_am_hdr, ext_am_hdr_sz,
+                                    TRUE, TRUE, FALSE);
 
     if (mpi_errno != MPI_SUCCESS)
         MPIR_ERR_POP(mpi_errno);
@@ -198,7 +202,7 @@ static inline int MPIDI_NM_am_recv(MPIR_Request * req)
     mpi_errno =
         MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_REQUEST(req, context_id),
                                    MPIDI_CH4U_REQUEST(req, rank), MPIDI_CH4U_SEND_LONG_ACK, &msg,
-                                   sizeof(msg));
+                                   sizeof(msg), NULL, 0);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 

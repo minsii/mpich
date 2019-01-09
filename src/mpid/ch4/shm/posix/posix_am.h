@@ -34,7 +34,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_request(const void *am_hdr, 
     if (!curr_sreq_hdr) {
         /* Prepare private storage */
 
-        mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz,
+        mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, NULL, 0,
                                                 &MPIDI_POSIX_AMREQUEST(sreq, req_hdr), sreq);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
@@ -147,7 +147,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend(int rank,
         MPIDI_POSIX_AMREQUEST(sreq, req_hdr) = NULL;
 
         /* Prepare private storage with information about the pack buffer. */
-        mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz,
+        mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, NULL, 0,
                                                 &MPIDI_POSIX_AMREQUEST(sreq, req_hdr), sreq);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
@@ -339,7 +339,9 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_hdr_max_sz(void)
 /* Enqueue a request header onto the postponed message queue. This is a helper function and most
  * likely shouldn't be used outside of this file. */
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, size_t am_hdr_sz,
-                                                            int handler_id, const int grank,
+                                                            const void *ext_am_hdr,
+                                                            size_t ext_am_hdr_sz, int handler_id,
+                                                            const int grank,
                                                             MPIDI_POSIX_am_header_t msg_hdr,
                                                             size_t iov_num_left)
 {
@@ -350,7 +352,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POSIX_AM_ENQUEUE_REQ_HDR);
 
     /* Prepare private storage */
-    mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, &curr_sreq_hdr, NULL);
+    mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, ext_am_hdr, ext_am_hdr_sz,
+                                            &curr_sreq_hdr, NULL);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
@@ -364,9 +367,23 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, 
 
     curr_sreq_hdr->iov_num = iov_num_left;
     curr_sreq_hdr->iov_ptr = curr_sreq_hdr->iov;
-    curr_sreq_hdr->iov[0].iov_base = curr_sreq_hdr->am_hdr;
-    curr_sreq_hdr->iov[0].iov_len = curr_sreq_hdr->am_hdr_sz;
-
+    if (iov_num_left == 2) {
+        /* both am_hdr and ext_am_hdr are left */
+        curr_sreq_hdr->iov[0].iov_base = curr_sreq_hdr->am_hdr;
+        curr_sreq_hdr->iov[0].iov_len = curr_sreq_hdr->am_hdr_sz;
+        curr_sreq_hdr->iov[1].iov_base = curr_sreq_hdr->ext_am_hdr;
+        curr_sreq_hdr->iov[1].iov_len = curr_sreq_hdr->ext_am_hdr_sz;
+    } else if (iov_num_left == 1) {
+        if (ext_am_hdr_sz > 0) {
+            /* am_hdr has been sent, only ext_am_hdr is left */
+            curr_sreq_hdr->iov[0].iov_base = curr_sreq_hdr->ext_am_hdr;
+            curr_sreq_hdr->iov[0].iov_len = curr_sreq_hdr->ext_am_hdr_sz;
+        } else {
+            /* ext_am_hdr is NULL, only am_hdr is left */
+            curr_sreq_hdr->iov[0].iov_base = curr_sreq_hdr->am_hdr;
+            curr_sreq_hdr->iov[0].iov_len = curr_sreq_hdr->am_hdr_sz;
+        }
+    }
     curr_sreq_hdr->request = NULL;
     DL_APPEND(MPIDI_POSIX_global.postponed_queue, curr_sreq_hdr);
 
@@ -384,13 +401,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
                                                      MPIR_Comm * comm,
                                                      int handler_id,
-                                                     const void *am_hdr, size_t am_hdr_sz)
+                                                     const void *am_hdr, size_t am_hdr_sz,
+                                                     const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS;
     int result = MPIDI_POSIX_OK;
     MPIDI_POSIX_am_header_t msg_hdr;
     MPIDI_POSIX_am_header_t *msg_hdr_p = &msg_hdr;
-    struct iovec iov_left[1];
+    struct iovec iov_left[2];
     struct iovec *iov_left_ptr = iov_left;
     size_t iov_num_left = 1;
     const int grank = MPIDI_CH4U_rank_to_lpid(rank, comm);
@@ -398,24 +416,32 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_POSIX_AM_SEND_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POSIX_AM_SEND_HDR);
 
+    memset(iov_left, 0, sizeof(iov_left));
     iov_left[0].iov_base = (void *) am_hdr;
     iov_left[0].iov_len = am_hdr_sz;
+    if (ext_am_hdr_sz > 0) {
+        iov_left[1].iov_base = (void *) ext_am_hdr;
+        iov_left[1].iov_len = ext_am_hdr_sz;
+        iov_num_left += 1;
+    }
 
     msg_hdr.handler_id = handler_id;
     msg_hdr.am_hdr_sz = am_hdr_sz;
+    msg_hdr.ext_am_hdr_sz = ext_am_hdr_sz;
     msg_hdr.data_sz = 0;
 
     if (unlikely(MPIDI_POSIX_global.postponed_queue)) {
-        mpi_errno = MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, am_hdr_sz, handler_id, grank, msg_hdr,
-                                                   iov_num_left);
+        mpi_errno = MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, am_hdr_sz, ext_am_hdr, ext_am_hdr_sz,
+                                                   handler_id, grank, msg_hdr, iov_num_left);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
     } else {
 
         POSIX_TRACE("Direct OUT HDR [ POSIX AM HDR [handler_id %" PRIu64 ", am_hdr_sz %" PRIu64
-                    ", data_sz %" PRIu64 ", seq_num = %d]] to %d\n",
+                    ", ext_am_hdr_sz %" PRIu64 ", data_sz %" PRIu64 ", seq_num = %d]] to %d\n",
                     (uint64_t) msg_hdr_p->handler_id,
-                    (uint64_t) msg_hdr_p->am_hdr_sz, (uint64_t) msg_hdr_p->data_sz,
+                    (uint64_t) msg_hdr_p->am_hdr_sz, (uint64_t) msg_hdr_p->ext_am_hdr_sz,
+                    (uint64_t) msg_hdr_p->data_sz,
 #ifdef POSIX_AM_DEBUG
                     msg_hdr_p->seq_num,
 #else /* POSIX_AM_DEBUG */
@@ -426,8 +452,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
         result = MPIDI_POSIX_eager_send(grank, &msg_hdr_p, &iov_left_ptr, &iov_num_left);
         if (unlikely((MPIDI_POSIX_NOK == result) || iov_num_left)) {
             mpi_errno =
-                MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, am_hdr_sz, handler_id, grank, msg_hdr,
-                                               iov_num_left);
+                MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, am_hdr_sz, ext_am_hdr, ext_am_hdr_sz,
+                                               handler_id, grank, msg_hdr, iov_num_left);
             if (mpi_errno)
                 MPIR_ERR_POP(mpi_errno);
             else
@@ -448,7 +474,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
 #define FCNAME MPL_QUOTE(FUNCNAME)
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr_reply(MPIR_Context_id_t context_id,
                                                            int src_rank, int handler_id,
-                                                           const void *am_hdr, size_t am_hdr_sz)
+                                                           const void *am_hdr, size_t am_hdr_sz,
+                                                           const void *ext_am_hdr,
+                                                           size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -457,7 +485,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr_reply(MPIR_Context_id_t con
 
     mpi_errno = MPIDI_POSIX_am_send_hdr(src_rank,
                                         MPIDI_CH4U_context_id_to_comm(context_id),
-                                        handler_id, am_hdr, am_hdr_sz);
+                                        handler_id, am_hdr, am_hdr_sz, ext_am_hdr, ext_am_hdr_sz);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POSIX_SEND_AM_HDR_REPLY);
 
@@ -483,7 +511,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_recv(MPIR_Request * req)
     mpi_errno =
         MPIDI_POSIX_am_send_hdr_reply(MPIDI_CH4U_REQUEST(req, context_id),
                                       MPIDI_CH4U_REQUEST(req, rank), MPIDI_CH4U_SEND_LONG_ACK, &msg,
-                                      sizeof(msg));
+                                      sizeof(msg), NULL, 0);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 

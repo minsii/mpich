@@ -207,7 +207,8 @@ static inline size_t MPIDI_NM_am_hdr_max_sz(void)
 
 static inline int MPIDI_NM_am_send_hdr(int rank,
                                        MPIR_Comm * comm,
-                                       int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                       int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                       const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS, ret, c;
     ptl_hdr_data_t ptl_hdr;
@@ -226,11 +227,13 @@ static inline int MPIDI_NM_am_send_hdr(int rank,
     MPIR_ERR_CHKANDSTMT((inject_req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
                         "**nomemreq");
     MPIDI_NM_am_request_init(inject_req);
-    send_buf = MPL_malloc(am_hdr_sz, MPL_MEM_BUFFER);
+    send_buf = MPL_malloc(am_hdr_sz + ext_am_hdr_sz, MPL_MEM_BUFFER);
     MPIR_Memcpy(send_buf, am_hdr, am_hdr_sz);
+    if (ext_am_hdr)
+        MPIR_Memcpy(send_buf + am_hdr_sz, ext_am_hdr, ext_am_hdr_sz);
     inject_req->dev.ch4.am.netmod_am.portals4.pack_buffer = send_buf;
 
-    ret = PtlPut(MPIDI_PTL_global.md, (ptl_size_t) send_buf, am_hdr_sz,
+    ret = PtlPut(MPIDI_PTL_global.md, (ptl_size_t) send_buf, am_hdr_sz + ext_am_hdr_sz,
                  PTL_ACK_REQ, MPIDI_PTL_global.addr_table[rank].process,
                  MPIDI_PTL_global.addr_table[rank].pt, match_bits, 0, inject_req, ptl_hdr);
 
@@ -243,7 +246,8 @@ static inline int MPIDI_NM_am_send_hdr(int rank,
 
 static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id,
                                              int src_rank,
-                                             int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                             int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                             const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     int mpi_errno = MPI_SUCCESS, ret, c;
     ptl_hdr_data_t ptl_hdr;
@@ -265,11 +269,13 @@ static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id,
     MPIR_ERR_CHKANDSTMT((inject_req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
                         "**nomemreq");
     MPIDI_NM_am_request_init(inject_req);
-    send_buf = MPL_malloc(am_hdr_sz, MPL_MEM_BUFFER);
+    send_buf = MPL_malloc(am_hdr_sz + ext_am_hdr_sz, MPL_MEM_BUFFER);
     MPIR_Memcpy(send_buf, am_hdr, am_hdr_sz);
+    if (ext_am_hdr)
+        MPIR_Memcpy(send_buf + am_hdr_sz, ext_am_hdr, ext_am_hdr_sz);
     inject_req->dev.ch4.am.netmod_am.portals4.pack_buffer = send_buf;
 
-    ret = PtlPut(MPIDI_PTL_global.md, (ptl_size_t) send_buf, am_hdr_sz,
+    ret = PtlPut(MPIDI_PTL_global.md, (ptl_size_t) send_buf, am_hdr_sz + ext_am_hdr_sz,
                  PTL_ACK_REQ, MPIDI_PTL_global.addr_table[src_rank].process,
                  MPIDI_PTL_global.addr_table[src_rank].pt, match_bits, 0, inject_req, ptl_hdr);
 

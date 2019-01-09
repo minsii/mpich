@@ -22,17 +22,21 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
     MPIR_Request *rreq = NULL;
     void *p_data;
     void *in_data;
-    size_t data_sz, in_data_sz;
+    size_t data_sz, in_data_sz, am_hdr_sz;
     MPIDIG_am_target_cmpl_cb target_cmpl_cb = NULL;
     struct iovec *iov;
     int i, is_contig, iov_len;
     size_t done, curr_len, rem;
     MPIDI_UCX_am_header_t *msg_hdr = (MPIDI_UCX_am_header_t *) msg;
+    void *ext_am_hdr;
 
-    p_data = in_data = (char *) msg_hdr->payload + (msg_sz - msg_hdr->data_sz - sizeof(*msg_hdr));
+    am_hdr_sz = msg_sz - msg_hdr->ext_am_hdr_sz - msg_hdr->data_sz - sizeof(*msg_hdr);
+    ext_am_hdr = (char *) msg_hdr->payload + am_hdr_sz;
+    p_data = in_data = (char *) ext_am_hdr + msg_hdr->ext_am_hdr_sz;
     in_data_sz = data_sz = msg_hdr->data_sz;
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, msg_hdr->payload,
+                                                       ext_am_hdr, msg_hdr->ext_am_hdr_sz,
                                                        &p_data, &data_sz, 0 /* is_local */ ,
                                                        &is_contig, &target_cmpl_cb, &rreq);
 

@@ -18,6 +18,7 @@
 
 #define MPIDI_POSIX_AM_HANDLER_ID_BITS  (8)
 #define MPIDI_POSIX_AM_HDR_SZ_BITS      (8)
+#define MPIDI_POSIX_EXT_AM_HDR_SZ_BITS  (8)
 #define MPIDI_POSIX_AM_DATA_SZ_BITS     (48)
 
 #define MPIDI_POSIX_AM_MSG_HEADER_SIZE  (sizeof(MPIDI_POSIX_am_header_t))
@@ -53,6 +54,7 @@ typedef struct {
 typedef struct MPIDI_POSIX_am_header {
     uint64_t handler_id:MPIDI_POSIX_AM_HANDLER_ID_BITS;
     uint64_t am_hdr_sz:MPIDI_POSIX_AM_HDR_SZ_BITS;
+    uint64_t ext_am_hdr_sz:MPIDI_POSIX_EXT_AM_HDR_SZ_BITS;
     uint64_t data_sz:MPIDI_POSIX_AM_DATA_SZ_BITS;
 #ifdef POSIX_AM_DEBUG
     int seq_num;
@@ -63,8 +65,10 @@ typedef struct MPIDI_POSIX_am_request_header {
     void *pack_buffer;
     void *rreq_ptr;
     void *am_hdr;
+    void *ext_am_hdr;
 
     uint16_t am_hdr_sz;
+    uint16_t ext_am_hdr_sz;
     uint8_t pad[6];
 
     MPIDI_POSIX_am_header_t *msg_hdr;

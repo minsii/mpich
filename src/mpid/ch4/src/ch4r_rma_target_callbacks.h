@@ -250,7 +250,7 @@ static inline int MPIDI_ack_put(MPIR_Request * rreq)
             MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                         (MPIDI_CH4U_REQUEST(rreq, req->preq.win_ptr)),
                                         MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_PUT_ACK,
-                                        &ack_msg, sizeof(ack_msg));
+                                        &ack_msg, sizeof(ack_msg), NULL, 0);
     else
 #endif
     {
@@ -258,7 +258,7 @@ static inline int MPIDI_ack_put(MPIR_Request * rreq)
             MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                        (MPIDI_CH4U_REQUEST(rreq, req->preq.win_ptr)),
                                        MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_PUT_ACK,
-                                       &ack_msg, sizeof(ack_msg));
+                                       &ack_msg, sizeof(ack_msg), NULL, 0);
     }
 
     if (mpi_errno)
@@ -337,7 +337,7 @@ static inline int MPIDI_ack_acc(MPIR_Request * rreq)
             MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                         (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                         MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_ACC_ACK,
-                                        &ack_msg, sizeof(ack_msg));
+                                        &ack_msg, sizeof(ack_msg), NULL, 0);
     else
 #endif
     {
@@ -345,7 +345,7 @@ static inline int MPIDI_ack_acc(MPIR_Request * rreq)
             MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                        (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                        MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_ACC_ACK,
-                                       &ack_msg, sizeof(ack_msg));
+                                       &ack_msg, sizeof(ack_msg), NULL, 0);
     }
 
     if (mpi_errno)
@@ -442,12 +442,14 @@ static inline int MPIDI_win_lock_advance(MPIR_Win * win)
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         if (MPIDI_CH4_rank_is_local(lock->rank, win->comm_ptr))
             mpi_errno = MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context(win),
-                                                    lock->rank, handler_id, &msg, sizeof(msg));
+                                                    lock->rank, handler_id, &msg, sizeof(msg),
+                                                    NULL, 0);
         else
 #endif
         {
             mpi_errno = MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context(win),
-                                                   lock->rank, handler_id, &msg, sizeof(msg));
+                                                   lock->rank, handler_id, &msg, sizeof(msg),
+                                                   NULL, 0);
         }
 
         if (mpi_errno)
@@ -550,13 +552,15 @@ static inline void MPIDI_win_unlock_proc(const MPIDI_CH4U_win_cntrl_msg_t * info
     if (is_local)
         mpi_errno = MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context(win),
                                                 info->origin_rank,
-                                                MPIDI_CH4U_WIN_UNLOCK_ACK, &msg, sizeof(msg));
+                                                MPIDI_CH4U_WIN_UNLOCK_ACK, &msg, sizeof(msg),
+                                                NULL, 0);
     else
 #endif
     {
         mpi_errno = MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context(win),
                                                info->origin_rank,
-                                               MPIDI_CH4U_WIN_UNLOCK_ACK, &msg, sizeof(msg));
+                                               MPIDI_CH4U_WIN_UNLOCK_ACK, &msg, sizeof(msg),
+                                               NULL, 0);
     }
 
     if (mpi_errno)
@@ -1030,7 +1034,7 @@ static inline int MPIDI_put_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                         (MPIDI_CH4U_REQUEST(rreq, req->preq.win_ptr)),
                                         MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_PUT_IOV_ACK,
-                                        &ack_msg, sizeof(ack_msg));
+                                        &ack_msg, sizeof(ack_msg), NULL, 0);
     else
 #endif
     {
@@ -1038,7 +1042,7 @@ static inline int MPIDI_put_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                        (MPIDI_CH4U_REQUEST(rreq, req->preq.win_ptr)),
                                        MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_PUT_IOV_ACK,
-                                       &ack_msg, sizeof(ack_msg));
+                                       &ack_msg, sizeof(ack_msg), NULL, 0);
     }
 
     if (mpi_errno)
@@ -1072,7 +1076,7 @@ static inline int MPIDI_acc_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                         (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                         MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_ACC_IOV_ACK,
-                                        &ack_msg, sizeof(ack_msg));
+                                        &ack_msg, sizeof(ack_msg), NULL, 0);
     else
 #endif
     {
@@ -1080,7 +1084,7 @@ static inline int MPIDI_acc_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                        (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                        MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_ACC_IOV_ACK,
-                                       &ack_msg, sizeof(ack_msg));
+                                       &ack_msg, sizeof(ack_msg), NULL, 0);
     }
 
     if (mpi_errno)
@@ -1114,7 +1118,7 @@ static inline int MPIDI_get_acc_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_SHM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                         (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                         MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_GET_ACC_IOV_ACK,
-                                        &ack_msg, sizeof(ack_msg));
+                                        &ack_msg, sizeof(ack_msg), NULL, 0);
     else
 #endif
     {
@@ -1122,7 +1126,7 @@ static inline int MPIDI_get_acc_iov_target_cmpl_cb(MPIR_Request * rreq)
             MPIDI_NM_am_send_hdr_reply(MPIDI_CH4U_win_to_context
                                        (MPIDI_CH4U_REQUEST(rreq, req->areq.win_ptr)),
                                        MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_GET_ACC_IOV_ACK,
-                                       &ack_msg, sizeof(ack_msg));
+                                       &ack_msg, sizeof(ack_msg), NULL, 0);
     }
 
     if (mpi_errno)
@@ -1343,6 +1347,8 @@ static inline int MPIDI_cswap_ack_target_cmpl_cb(MPIR_Request * rreq)
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_put_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz, int is_local, int *is_contig,
                                               MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
@@ -1383,6 +1389,8 @@ static inline int MPIDI_put_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_acc_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz, int is_local, int *is_contig,
                                               MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
@@ -1424,6 +1432,8 @@ static inline int MPIDI_acc_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_acc_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                  void *ext_am_hdr ATTRIBUTE((unused)),
+                                                  size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                   void **data,
                                                   size_t * p_data_sz, int is_local, int *is_contig,
                                                   MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
@@ -1496,6 +1506,8 @@ static inline int MPIDI_get_acc_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_cswap_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                void *ext_am_hdr ATTRIBUTE((unused)),
+                                                size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                 void **data,
                                                 size_t * p_data_sz, int is_local, int *is_contig,
                                                 MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
@@ -1531,6 +1543,8 @@ static inline int MPIDI_cswap_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_win_ctrl_target_msg_cb(int handler_id, void *am_hdr,
+                                               void *ext_am_hdr ATTRIBUTE((unused)),
+                                               size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                void **data,
                                                size_t * p_data_sz, int is_local, int *is_contig,
                                                MPIDIG_am_target_cmpl_cb * target_cmpl_cb,
@@ -1598,6 +1612,8 @@ static inline int MPIDI_win_ctrl_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_put_target_msg_cb(int handler_id, void *am_hdr,
+                                          void *ext_am_hdr ATTRIBUTE((unused)),
+                                          size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                           void **data,
                                           size_t * p_data_sz,
                                           int is_local,
@@ -1705,6 +1721,8 @@ static inline int MPIDI_put_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_put_iov_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz,
                                               int is_local,
@@ -1765,6 +1783,8 @@ static inline int MPIDI_put_iov_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_put_iov_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                  void *ext_am_hdr ATTRIBUTE((unused)),
+                                                  size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                   void **data,
                                                   size_t * p_data_sz,
                                                   int is_local,
@@ -1832,6 +1852,8 @@ static inline int MPIDI_put_iov_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_acc_iov_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                  void *ext_am_hdr ATTRIBUTE((unused)),
+                                                  size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                   void **data,
                                                   size_t * p_data_sz,
                                                   int is_local,
@@ -1899,6 +1921,8 @@ static inline int MPIDI_acc_iov_ack_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_acc_iov_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                      void *ext_am_hdr ATTRIBUTE((unused)),
+                                                      size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                       void **data,
                                                       size_t * p_data_sz,
                                                       int is_local,
@@ -1966,6 +1990,8 @@ static inline int MPIDI_get_acc_iov_ack_target_msg_cb(int handler_id, void *am_h
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_put_data_target_msg_cb(int handler_id, void *am_hdr,
+                                               void *ext_am_hdr ATTRIBUTE((unused)),
+                                               size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                void **data,
                                                size_t * p_data_sz,
                                                int is_local,
@@ -2010,6 +2036,8 @@ static inline int MPIDI_put_data_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_acc_data_target_msg_cb(int handler_id, void *am_hdr,
+                                               void *ext_am_hdr ATTRIBUTE((unused)),
+                                               size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                void **data,
                                                size_t * p_data_sz,
                                                int is_local,
@@ -2041,6 +2069,8 @@ static inline int MPIDI_acc_data_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_acc_data_target_msg_cb(int handler_id, void *am_hdr,
+                                                   void *ext_am_hdr ATTRIBUTE((unused)),
+                                                   size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                    void **data,
                                                    size_t * p_data_sz,
                                                    int is_local,
@@ -2072,6 +2102,8 @@ static inline int MPIDI_get_acc_data_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_cswap_target_msg_cb(int handler_id, void *am_hdr,
+                                            void *ext_am_hdr ATTRIBUTE((unused)),
+                                            size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                             void **data,
                                             size_t * p_data_sz,
                                             int is_local,
@@ -2140,6 +2172,8 @@ static inline int MPIDI_cswap_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_acc_target_msg_cb(int handler_id, void *am_hdr,
+                                          void *ext_am_hdr ATTRIBUTE((unused)),
+                                          size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                           void **data,
                                           size_t * p_data_sz,
                                           int is_local,
@@ -2232,6 +2266,8 @@ static inline int MPIDI_acc_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_acc_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz,
                                               int is_local,
@@ -2247,8 +2283,8 @@ static inline int MPIDI_get_acc_target_msg_cb(int handler_id, void *am_hdr,
 
     /* the same handling processing as ACC except the completion handler function. */
     mpi_errno =
-        MPIDI_acc_target_msg_cb(handler_id, am_hdr, data, p_data_sz, is_local, is_contig,
-                                target_cmpl_cb, req);
+        MPIDI_acc_target_msg_cb(handler_id, am_hdr, ext_am_hdr, ext_am_hdr_sz, data, p_data_sz,
+                                is_local, is_contig, target_cmpl_cb, req);
 
     *target_cmpl_cb = MPIDI_get_acc_target_cmpl_cb;
 
@@ -2262,6 +2298,8 @@ static inline int MPIDI_get_acc_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_acc_iov_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz,
                                               int is_local,
@@ -2332,6 +2370,8 @@ static inline int MPIDI_acc_iov_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_acc_iov_target_msg_cb(int handler_id, void *am_hdr,
+                                                  void *ext_am_hdr ATTRIBUTE((unused)),
+                                                  size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                                   void **data,
                                                   size_t * p_data_sz,
                                                   int is_local,
@@ -2346,7 +2386,7 @@ static inline int MPIDI_get_acc_iov_target_msg_cb(int handler_id, void *am_hdr,
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_get_acc_iov);
 
     /* the same handling processing as ACC except the completion handler function. */
-    mpi_errno = MPIDI_acc_iov_target_msg_cb(handler_id, am_hdr, data,
+    mpi_errno = MPIDI_acc_iov_target_msg_cb(handler_id, am_hdr, ext_am_hdr, ext_am_hdr_sz, data,
                                             p_data_sz, is_local, is_contig, target_cmpl_cb, req);
 
     *target_cmpl_cb = MPIDI_get_acc_iov_target_cmpl_cb;
@@ -2361,6 +2401,8 @@ static inline int MPIDI_get_acc_iov_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_target_msg_cb(int handler_id, void *am_hdr,
+                                          void *ext_am_hdr ATTRIBUTE((unused)),
+                                          size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                           void **data,
                                           size_t * p_data_sz,
                                           int is_local,
@@ -2428,6 +2470,8 @@ static inline int MPIDI_get_target_msg_cb(int handler_id, void *am_hdr,
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_get_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                              void *ext_am_hdr ATTRIBUTE((unused)),
+                                              size_t ext_am_hdr_sz ATTRIBUTE((unused)),
                                               void **data,
                                               size_t * p_data_sz,
                                               int is_local,

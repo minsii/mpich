@@ -230,6 +230,7 @@ static inline int MPIDI_OFI_do_am_isend_header(int rank,
     msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
     msg_hdr->handler_id = handler_id;
     msg_hdr->am_hdr_sz = am_hdr_sz;
+    msg_hdr->ext_am_hdr_sz = 0;
     msg_hdr->data_sz = 0;
     msg_hdr->am_type = MPIDI_AMTYPE_SHORT_HDR;
 
@@ -286,6 +287,7 @@ static inline int MPIDI_OFI_am_isend_long(int rank,
     msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
     msg_hdr->handler_id = handler_id;
     msg_hdr->am_hdr_sz = am_hdr_sz;
+    msg_hdr->ext_am_hdr_sz = 0;
     msg_hdr->data_sz = data_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_LMT_REQ;
 
@@ -385,6 +387,7 @@ static inline int MPIDI_OFI_am_isend_short(int rank,
     msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
     msg_hdr->handler_id = handler_id;
     msg_hdr->am_hdr_sz = am_hdr_sz;
+    msg_hdr->ext_am_hdr_sz = 0;
     msg_hdr->data_sz = count;
     msg_hdr->am_type = MPIDI_AMTYPE_SHORT;
 
@@ -454,7 +457,7 @@ static inline int MPIDI_OFI_do_am_isend(int rank,
         MPIDI_CH4U_REQUEST(sreq, req->lreq).context_id = lreq_hdr.hdr.context_id;
         MPIDI_CH4U_REQUEST(sreq, rank) = rank;
         mpi_errno = MPIDI_NM_am_send_hdr(rank, comm, MPIDI_CH4U_SEND_LONG_REQ,
-                                         &lreq_hdr, sizeof(lreq_hdr));
+                                         &lreq_hdr, sizeof(lreq_hdr), NULL, 0);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
         goto fn_exit;
@@ -511,7 +514,8 @@ static inline int MPIDI_OFI_do_am_isend(int rank,
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
                                                           const MPIDI_OFI_am_header_t * msg_hdrp,
                                                           const void *am_hdr,
-                                                          size_t am_hdr_sz, int need_lock)
+                                                          size_t am_hdr_sz, const void *ext_am_hdr,
+                                                          size_t ext_am_hdr_sz, int need_lock)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq;
@@ -520,11 +524,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
 
     sreq = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);
     MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
-    len = am_hdr_sz + sizeof(*msg_hdrp);
+    len = am_hdr_sz + ext_am_hdr_sz + sizeof(*msg_hdrp);
     ibuf = (char *) MPL_malloc(len, MPL_MEM_BUFFER);
     MPIR_Assert(ibuf);
     memcpy(ibuf, msg_hdrp, sizeof(*msg_hdrp));
     memcpy(ibuf + sizeof(*msg_hdrp), am_hdr, am_hdr_sz);
+    if (ext_am_hdr)
+        memcpy(ibuf + sizeof(*msg_hdrp) + am_hdr_sz, ext_am_hdr, ext_am_hdr_sz);
 
     MPIDI_OFI_REQUEST(sreq, event_id) = MPIDI_OFI_EVENT_INJECT_EMU;
     MPIDI_OFI_REQUEST(sreq, util.inject_buf) = ibuf;
@@ -548,6 +554,7 @@ static inline int MPIDI_OFI_do_inject(int rank,
                                       int handler_id,
                                       const void *am_hdr,
                                       size_t am_hdr_sz,
+                                      const void *ext_am_hdr, size_t ext_am_hdr_sz,
                                       int is_reply, int use_comm_table, int need_lock)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -565,6 +572,7 @@ static inline int MPIDI_OFI_do_inject(int rank,
 
     msg_hdr.handler_id = handler_id;
     msg_hdr.am_hdr_sz = am_hdr_sz;
+    msg_hdr.ext_am_hdr_sz = ext_am_hdr_sz;
     msg_hdr.data_sz = 0;
     msg_hdr.am_type = MPIDI_AMTYPE_SHORT_HDR;
 
@@ -572,15 +580,18 @@ static inline int MPIDI_OFI_do_inject(int rank,
 
     addr = use_comm_table ? MPIDI_OFI_comm_to_phys(comm, rank) : MPIDI_OFI_to_phys(rank);
 
-    if (unlikely(am_hdr_sz + sizeof(msg_hdr) > MPIDI_Global.max_buffered_send)) {
-        mpi_errno = MPIDI_OFI_do_emulated_inject(addr, &msg_hdr, am_hdr, am_hdr_sz, need_lock);
+    if (unlikely(am_hdr_sz + ext_am_hdr_sz + sizeof(msg_hdr) > MPIDI_Global.max_buffered_send)) {
+        mpi_errno = MPIDI_OFI_do_emulated_inject(addr, &msg_hdr, am_hdr, am_hdr_sz,
+                                                 ext_am_hdr, ext_am_hdr_sz, need_lock);
         goto fn_exit;
     }
 
-    buff_len = sizeof(msg_hdr) + am_hdr_sz;
+    buff_len = sizeof(msg_hdr) + am_hdr_sz + ext_am_hdr_sz;
     MPIR_CHKLMEM_MALLOC(buff, char *, buff_len, mpi_errno, "buff", MPL_MEM_BUFFER);
     memcpy(buff, &msg_hdr, sizeof(msg_hdr));
     memcpy(buff + sizeof(msg_hdr), am_hdr, am_hdr_sz);
+    if (ext_am_hdr)
+        memcpy(buff + sizeof(msg_hdr) + am_hdr_sz, ext_am_hdr, ext_am_hdr_sz);
 
     MPIDI_OFI_CALL_RETRY_AM(fi_inject(MPIDI_Global.ctx[0].tx, buff, buff_len, addr),
                             need_lock, inject);

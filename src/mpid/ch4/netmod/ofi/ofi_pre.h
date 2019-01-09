@@ -29,6 +29,7 @@
 #define MPIDI_OFI_AM_HANDLER_ID_BITS   8
 #define MPIDI_OFI_AM_TYPE_BITS         8
 #define MPIDI_OFI_AM_HDR_SZ_BITS       8
+#define MPIDI_OFI_EXT_AM_HDR_SZ_BITS   8
 #define MPIDI_OFI_AM_DATA_SZ_BITS     48
 #define MPIDI_OFI_AM_CONTEXT_ID_BITS  16
 #define MPIDI_OFI_AM_RANK_BITS        32
@@ -75,6 +76,7 @@ typedef struct MPIDI_OFI_am_header_t {
     uint64_t handler_id:MPIDI_OFI_AM_HANDLER_ID_BITS;
     uint64_t am_type:MPIDI_OFI_AM_TYPE_BITS;
     uint64_t am_hdr_sz:MPIDI_OFI_AM_HDR_SZ_BITS;
+    uint64_t ext_am_hdr_sz:MPIDI_OFI_EXT_AM_HDR_SZ_BITS;
     uint64_t data_sz:MPIDI_OFI_AM_DATA_SZ_BITS;
     uint64_t payload[0];
 } MPIDI_OFI_am_header_t;

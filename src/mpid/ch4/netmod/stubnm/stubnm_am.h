@@ -57,14 +57,16 @@ static inline size_t MPIDI_NM_am_hdr_max_sz(void)
 
 static inline int MPIDI_NM_am_send_hdr(int rank,
                                        MPIR_Comm * comm,
-                                       int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                       int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                       const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
 }
 
 static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id, int src_rank,
-                                             int handler_id, const void *am_hdr, size_t am_hdr_sz)
+                                             int handler_id, const void *am_hdr, size_t am_hdr_sz,
+                                             const void *ext_am_hdr, size_t ext_am_hdr_sz)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;

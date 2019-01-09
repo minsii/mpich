@@ -26,6 +26,8 @@ static inline int MPIDI_POSIX_am_release_req_hdr(MPIDI_POSIX_am_request_header_t
     if ((*req_hdr_ptr)->am_hdr != &(*req_hdr_ptr)->am_hdr_buf[0]) {
         MPL_free((*req_hdr_ptr)->am_hdr);
     }
+    MPL_free((*req_hdr_ptr)->ext_am_hdr);
+
 #ifndef POSIX_AM_REQUEST_INLINE
     MPIDI_CH4R_release_buf((*req_hdr_ptr));
 #endif
@@ -40,6 +42,7 @@ static inline int MPIDI_POSIX_am_release_req_hdr(MPIDI_POSIX_am_request_header_t
 #define FCNAME MPL_QUOTE(FUNCNAME)
 static inline int MPIDI_POSIX_am_init_req_hdr(const void *am_hdr,
                                               size_t am_hdr_sz,
+                                              const void *ext_am_hdr, size_t ext_am_hdr_sz,
                                               MPIDI_POSIX_am_request_header_t ** req_hdr_ptr,
                                               MPIR_Request * sreq)
 {
@@ -80,7 +83,15 @@ static inline int MPIDI_POSIX_am_init_req_hdr(const void *am_hdr,
         MPIR_Memcpy(req_hdr->am_hdr, am_hdr, am_hdr_sz);
     }
 
+    if (ext_am_hdr) {
+        req_hdr->ext_am_hdr = MPL_malloc(ext_am_hdr_sz, MPL_MEM_SHM);
+        MPIR_ERR_CHKANDJUMP(!(req_hdr->ext_am_hdr), mpi_errno, MPI_ERR_OTHER, "**nomem");
+        MPIR_Memcpy(req_hdr->ext_am_hdr, ext_am_hdr, ext_am_hdr_sz);
+    } else
+        req_hdr->ext_am_hdr = NULL;
+
     req_hdr->am_hdr_sz = am_hdr_sz;
+    req_hdr->ext_am_hdr_sz = ext_am_hdr_sz;
     *req_hdr_ptr = req_hdr;
 
   fn_exit:
