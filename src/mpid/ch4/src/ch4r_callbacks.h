@@ -566,6 +566,90 @@ static inline int MPIDI_send_target_msg_cb(int handler_id, void *am_hdr,
 }
 
 #undef FUNCNAME
+#define FUNCNAME MPIDI_do_match_send_long_req
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_do_match_send_long_req(MPIDI_CH4U_hdr_t * hdr,
+                                                          MPIR_Comm * root_comm,
+                                                          bool * matched_flag,
+                                                          MPIR_Request ** rreq_ptr,
+                                                          MPIR_Request **
+                                                          anysource_partner_ptr ATTRIBUTE((unused)))
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Request *rreq = NULL;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_DO_MATCH_SEND_LONG_REQ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_DO_MATCH_SEND_LONG_REQ);
+
+    if (root_comm) {
+        /* MPIDI_CS_ENTER(); */
+#ifdef MPIDI_CH4_DIRECT_NETMOD
+        rreq = MPIDI_CH4U_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
+                                         &MPIDI_CH4U_COMM(root_comm, posted_list));
+#else /* MPIDI_CH4_DIRECT_NETMOD */
+        int continue_matching = 1;
+        while (continue_matching) {
+            rreq = MPIDI_CH4U_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
+                                             &MPIDI_CH4U_COMM(root_comm, posted_list));
+
+            if (rreq && MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq)) {
+                *anysource_partner_ptr = MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq);
+
+                mpi_errno = MPIDI_CH4R_anysource_matched(*anysource_partner_ptr,
+                                                         MPIDI_CH4I_REQUEST(rreq, is_local) ?
+                                                         MPIDI_CH4R_SHM : MPIDI_CH4R_NETMOD,
+                                                         &continue_matching);
+
+                if (MPI_SUCCESS != mpi_errno)
+                    MPIR_ERR_POP(mpi_errno);
+
+                MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq) = NULL;
+                MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(*anysource_partner_ptr) = NULL;
+            }
+
+            break;
+        }
+#endif /* MPIDI_CH4_DIRECT_NETMOD */
+        /* MPIDI_CS_EXIT(); */
+    }
+
+    if (rreq == NULL) {
+        *matched_flag = false;
+        rreq = MPIDI_CH4I_am_request_create(MPIR_REQUEST_KIND__RECV, 2);
+        MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
+
+        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_LONG_RTS;
+        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_IN_PROGRESS;
+
+        /* MPIDI_CS_ENTER(); */
+        if (root_comm) {
+            MPIR_Comm_add_ref(root_comm);
+            MPIDI_CH4U_enqueue_unexp(rreq, &MPIDI_CH4U_COMM(root_comm, unexp_list));
+        } else {
+            MPIDI_CH4U_enqueue_unexp(rreq,
+                                     MPIDI_CH4U_context_id_to_uelist(MPIDI_CH4U_REQUEST
+                                                                     (rreq, context_id)));
+        }
+        /* MPIDI_CS_EXIT(); */
+    } else {
+        /* Matching receive was posted */
+        *matched_flag = true;
+        MPIR_Comm_release(root_comm);   /* -1 for posted_list */
+        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_LONG_RTS;
+        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_IN_PROGRESS;
+    }
+
+    *rreq_ptr = rreq;
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_DO_MATCH_SEND_LONG_REQ);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+#undef FUNCNAME
 #define FUNCNAME MPIDI_send_long_req_target_msg_cb
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
@@ -585,84 +669,35 @@ static inline int MPIDI_send_long_req_target_msg_cb(int handler_id, void *am_hdr
     MPIR_Comm *root_comm;
     MPIDI_CH4U_hdr_t *hdr = (MPIDI_CH4U_hdr_t *) am_hdr;
     MPIDI_CH4U_send_long_req_msg_t *lreq_hdr = (MPIDI_CH4U_send_long_req_msg_t *) am_hdr;
-
-#ifndef MPIDI_CH4_DIRECT_NETMOD
-    MPIR_Request *anysource_partner = NULL;
-#endif
+    bool matched_flag = false;
+    MPIR_Request *anysource_partner ATTRIBUTE((unused)) = NULL;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SEND_LONG_REQ_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SEND_LONG_REQ_TARGET_MSG_CB);
 
     root_comm = MPIDI_CH4U_context_id_to_comm(hdr->context_id);
-    if (root_comm) {
-        /* MPIDI_CS_ENTER(); */
-#ifdef MPIDI_CH4_DIRECT_NETMOD
-        rreq = MPIDI_CH4U_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
-                                         &MPIDI_CH4U_COMM(root_comm, posted_list));
-#else /* MPIDI_CH4_DIRECT_NETMOD */
-        int continue_matching = 1;
-        while (continue_matching) {
-            rreq = MPIDI_CH4U_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
-                                             &MPIDI_CH4U_COMM(root_comm, posted_list));
+    mpi_errno = MPIDI_do_match_send_long_req(hdr, root_comm, &matched_flag, &rreq,
+                                             &anysource_partner);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
-            if (rreq && MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq)) {
-                anysource_partner = MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq);
+    /* Set received message info */
+    MPIDI_CH4U_REQUEST(rreq, req->rreq.peer_req_ptr) = lreq_hdr->sreq_ptr;
+    MPIDI_CH4U_REQUEST(rreq, rank) = hdr->src_rank;
+    MPIDI_CH4U_REQUEST(rreq, tag) = hdr->tag;
+    MPIDI_CH4U_REQUEST(rreq, context_id) = hdr->context_id;
 
-                mpi_errno = MPIDI_CH4R_anysource_matched(anysource_partner,
-                                                         MPIDI_CH4I_REQUEST(rreq, is_local) ?
-                                                         MPIDI_CH4R_SHM : MPIDI_CH4R_NETMOD,
-                                                         &continue_matching);
-
-                if (MPI_SUCCESS != mpi_errno)
-                    MPIR_ERR_POP(mpi_errno);
-
-                MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(rreq) = NULL;
-                MPIDI_CH4I_REQUEST_ANYSOURCE_PARTNER(anysource_partner) = NULL;
-            }
-
-            break;
-        }
-#endif /* MPIDI_CH4_DIRECT_NETMOD */
-        /* MPIDI_CS_EXIT(); */
-    }
-
-    if (rreq == NULL) {
-        rreq = MPIDI_CH4I_am_request_create(MPIR_REQUEST_KIND__RECV, 2);
-        MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
-
+    if (!matched_flag) {
+        /* Unexpected receive */
         MPIDI_CH4U_REQUEST(rreq, buffer) = NULL;
         MPIDI_CH4U_REQUEST(rreq, datatype) = MPI_BYTE;
         MPIDI_CH4U_REQUEST(rreq, count) = lreq_hdr->data_sz;
-        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_LONG_RTS;
-        MPIDI_CH4U_REQUEST(rreq, req->rreq.peer_req_ptr) = lreq_hdr->sreq_ptr;
-        MPIDI_CH4U_REQUEST(rreq, rank) = hdr->src_rank;
-        MPIDI_CH4U_REQUEST(rreq, tag) = hdr->tag;
-        MPIDI_CH4U_REQUEST(rreq, context_id) = hdr->context_id;
-        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_IN_PROGRESS;
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         MPIDI_CH4I_REQUEST(rreq, is_local) = is_local;
 #endif
-
-        /* MPIDI_CS_ENTER(); */
-        if (root_comm) {
-            MPIR_Comm_add_ref(root_comm);
-            MPIDI_CH4U_enqueue_unexp(rreq, &MPIDI_CH4U_COMM(root_comm, unexp_list));
-        } else {
-            MPIDI_CH4U_enqueue_unexp(rreq,
-                                     MPIDI_CH4U_context_id_to_uelist(MPIDI_CH4U_REQUEST
-                                                                     (rreq, context_id)));
-        }
-        /* MPIDI_CS_EXIT(); */
     } else {
         /* Matching receive was posted, tell the netmod */
-        MPIR_Comm_release(root_comm);   /* -1 for posted_list */
-        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_LONG_RTS;
-        MPIDI_CH4U_REQUEST(rreq, req->rreq.peer_req_ptr) = lreq_hdr->sreq_ptr;
-        MPIDI_CH4U_REQUEST(rreq, rank) = hdr->src_rank;
-        MPIDI_CH4U_REQUEST(rreq, tag) = hdr->tag;
-        MPIDI_CH4U_REQUEST(rreq, context_id) = hdr->context_id;
-        MPIDI_CH4U_REQUEST(rreq, req->status) |= MPIDI_CH4U_REQ_IN_PROGRESS;
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         if (MPIDI_CH4I_REQUEST(rreq, is_local))
