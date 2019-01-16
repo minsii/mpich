@@ -58,6 +58,12 @@ enum {
     MPIDI_CH4U_SEND_LONG_ACK,   /* Rendezvous send CTS (clear to send) */
     MPIDI_CH4U_SEND_LONG_LMT,   /* Rendezvous send LMT */
 
+    MPIDI_CH4U_SEND_LONG_WITH_INFO_REQ, /* Rendezvous immediate send RTS (request to send).
+                                         * The sender should provide necessary info at extended
+                                         * packet header thus the receiver can copy data and complete
+                                         * at callback. */
+    MPIDI_CH4U_SEND_LONG_WITH_INFO_ACK, /* Rendezvous immediate send ACK (completion on sender) */
+
     MPIDI_CH4U_SSEND_REQ,
     MPIDI_CH4U_SSEND_ACK,
 
@@ -142,6 +148,15 @@ typedef struct MPIDI_CH4U_send_long_ack_msg_t {
 typedef struct MPIDI_CH4U_send_long_lmt_msg_t {
     uint64_t rreq_ptr;
 } MPIDI_CH4U_send_long_lmt_msg_t;
+
+typedef struct MPIDI_CH4U_send_long_with_info_req_msg_t {
+    MPIDI_CH4U_hdr_t hdr;
+    uint64_t sreq_ptr;
+} MPIDI_CH4U_send_long_with_info_req_msg_t;
+
+typedef struct MPIDI_CH4U_send_long_with_info_ack_msg_t {
+    uint64_t sreq_ptr;
+} MPIDI_CH4U_send_long_with_info_ack_msg_t;
 
 typedef struct MPIDI_CH4U_ssend_req_msg_t {
     MPIDI_CH4U_hdr_t hdr;

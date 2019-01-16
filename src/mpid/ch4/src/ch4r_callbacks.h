@@ -882,6 +882,135 @@ static inline int MPIDI_send_long_ack_target_msg_cb(int handler_id, void *am_hdr
     goto fn_exit;
 }
 
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_send_long_with_info_req_target_msg_cb
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_send_long_with_info_req_target_msg_cb(int handler_id,
+                                                                         void *am_hdr,
+                                                                         void *ext_am_hdr,
+                                                                         size_t ext_am_hdr_sz,
+                                                                         void **data,
+                                                                         size_t * p_data_sz,
+                                                                         int is_local,
+                                                                         int *is_contig,
+                                                                         MPIDIG_am_target_cmpl_cb *
+                                                                         target_cmpl_cb,
+                                                                         MPIR_Request ** req)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Request *rreq = NULL;
+    MPIR_Comm *root_comm;
+    MPIDI_CH4U_hdr_t *hdr = (MPIDI_CH4U_hdr_t *) am_hdr;
+    MPIDI_CH4U_send_long_with_info_req_msg_t *lreq_hdr =
+        (MPIDI_CH4U_send_long_with_info_req_msg_t *) am_hdr;
+    bool matched_flag = false;
+    MPIR_Request *anysource_partner ATTRIBUTE((unused)) = NULL;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_REQ_TARGET_MSG_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_REQ_TARGET_MSG_CB);
+
+    root_comm = MPIDI_CH4U_context_id_to_comm(hdr->context_id);
+    mpi_errno = MPIDI_do_match_send_long_req(hdr, root_comm, &matched_flag, &rreq,
+                                             &anysource_partner);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    /* Set received message info */
+    MPIDI_CH4U_REQUEST(rreq, req->rreq.peer_req_ptr) = lreq_hdr->sreq_ptr;
+    MPIDI_CH4U_REQUEST(rreq, rank) = hdr->src_rank;
+    MPIDI_CH4U_REQUEST(rreq, tag) = hdr->tag;
+    MPIDI_CH4U_REQUEST(rreq, context_id) = hdr->context_id;
+
+    if (!matched_flag) {
+        /* Unexpected receive.
+         * Receive buffer, count, and datatype are set when matching with a posting receive.*/
+#ifndef MPIDI_CH4_DIRECT_NETMOD
+        MPIDI_CH4I_REQUEST(rreq, is_local) = is_local;
+#endif
+        /* Store extended packet header in temporary buffer to be used after matching.
+         * The buffer is freed at request completion. */
+        if (ext_am_hdr_sz > 0) {
+            MPIDI_CH4U_REQUEST(rreq, ext_am_hdr) = MPL_malloc(ext_am_hdr_sz, MPL_MEM_BUFFER);
+            MPIR_Assert(MPIDI_CH4U_REQUEST(rreq, ext_am_hdr));
+            MPIR_Memcpy(MPIDI_CH4U_REQUEST(rreq, ext_am_hdr), ext_am_hdr, ext_am_hdr_sz);
+            MPIDI_CH4U_REQUEST(rreq, ext_am_hdr_ptr) = &MPIDI_CH4U_REQUEST(rreq, ext_am_hdr);
+        }
+
+        *target_cmpl_cb = NULL;
+    } else {
+        /* Matching receive was posted, let netmod or shmmod handle it */
+
+        /* Pass extended packet header pointer */
+        if (ext_am_hdr_sz > 0)
+            MPIDI_CH4U_REQUEST(rreq, ext_am_hdr_ptr) = ext_am_hdr;
+
+#ifndef MPIDI_CH4_DIRECT_NETMOD
+        if (MPIDI_CH4I_REQUEST(rreq, is_local))
+            mpi_errno = MPIDI_SHM_am_recv(rreq);
+        else
+#endif
+        {
+            mpi_errno = MPIDI_NM_am_recv(rreq);
+        }
+
+        if (mpi_errno)
+            MPIR_ERR_POP(mpi_errno);
+
+#ifndef MPIDI_CH4_DIRECT_NETMOD
+        if (unlikely(anysource_partner)) {
+            anysource_partner->status = rreq->status;
+        }
+#endif /* MPIDI_CH4_DIRECT_NETMOD */
+
+        /* Complete the receive request */
+        *target_cmpl_cb = MPIDI_recv_target_cmpl_cb;
+    }
+
+    *req = rreq;
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_REQ_TARGET_MSG_CB);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_send_long_with_info_ack_target_msg_cb
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static inline int MPIDI_send_long_with_info_ack_target_msg_cb(int handler_id, void *am_hdr,
+                                                              void *ext_am_hdr,
+                                                              size_t ext_am_hdr_sz,
+                                                              void **data,
+                                                              size_t * p_data_sz,
+                                                              int is_local,
+                                                              int *is_contig,
+                                                              MPIDIG_am_target_cmpl_cb *
+                                                              target_cmpl_cb, MPIR_Request ** req)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Request *sreq;
+    MPIDI_CH4U_send_long_with_info_ack_msg_t *msg_hdr =
+        (MPIDI_CH4U_send_long_with_info_ack_msg_t *) am_hdr;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_ACK_TARGET_MSG_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_ACK_TARGET_MSG_CB);
+
+    sreq = (MPIR_Request *) msg_hdr->sreq_ptr;
+    MPIR_Assert(sreq != NULL);
+
+    *target_cmpl_cb = MPIDI_send_origin_cb;
+    *req = sreq;
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SEND_LONG_WITH_INFO_ACK_TARGET_MSG_CB);
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 #undef FUNCNAME
 #define FUNCNAME MPIDI_comm_abort_origin_cb
 #undef FCNAME

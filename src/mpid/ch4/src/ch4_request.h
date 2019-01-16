@@ -98,6 +98,10 @@ MPL_STATIC_INLINE_PREFIX int MPID_Request_complete(MPIR_Request * req)
         if (req->completion_notification)
             MPIR_cc_decr(req->completion_notification, &notify_counter);
 
+        /* free temporary extended header buffer which was created
+         * for unexpected request */
+        MPL_free(MPIDI_CH4U_REQUEST(req, ext_am_hdr));
+
         if (MPIDI_CH4U_REQUEST(req, req)) {
             MPIDI_CH4R_release_buf(MPIDI_CH4U_REQUEST(req, req));
             MPIDI_CH4U_REQUEST(req, req) = NULL;

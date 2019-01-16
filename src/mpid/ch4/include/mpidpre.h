@@ -177,6 +177,11 @@ typedef struct MPIDI_CH4U_req_t {
     MPIDI_SHM_REQUEST_AM_DECL} shm_am;
     MPIDI_CH4U_req_ext_t *req;
     MPIDI_ptype p_type;         /* persistent request type */
+    void *ext_am_hdr;           /* temporary buffer for storing extended header
+                                 * when queuing unexpected request */
+    void *ext_am_hdr_ptr;       /* pointer to extended header, can be
+                                 * the above temporary buffer (should free)
+                                 * or pointer to payload segment (should not free) */
     void *buffer;
     uint64_t count;
     int rank;

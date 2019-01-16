@@ -79,6 +79,16 @@ int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self, int n_vnis)
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
+    mpi_errno = MPIDIG_am_reg_cb(MPIDI_CH4U_SEND_LONG_WITH_INFO_REQ, NULL /* Injection only */ ,
+                                 &MPIDI_send_long_with_info_req_target_msg_cb);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    mpi_errno = MPIDIG_am_reg_cb(MPIDI_CH4U_SEND_LONG_WITH_INFO_ACK, NULL /* Injection only */ ,
+                                 &MPIDI_send_long_with_info_ack_target_msg_cb);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
     mpi_errno = MPIDIG_am_reg_cb(MPIDI_CH4U_SSEND_REQ,
                                  &MPIDI_send_origin_cb, &MPIDI_ssend_target_msg_cb);
     if (mpi_errno)
