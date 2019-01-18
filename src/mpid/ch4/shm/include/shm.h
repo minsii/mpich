@@ -14,7 +14,33 @@
 
 #include <mpidimpl.h>
 
+enum {
+    MPIDI_SHM_GO_XPMEM = 0,
+    MPIDI_SHM_GO_POSIX
+};
+
+typedef enum MPIDI_SHM_ext_am_hdr_type {
+    MPIDI_SHM_XPMEM_SEND_LONG_WITH_INFO_REQ
+} MPIDI_SHM_ext_am_hdr_type_t;
+
+typedef struct MPIDI_SHM_ext_xpmem_send_long_with_info_req_t {
+    uint32_t local_rank;
+    uint64_t data_sz;
+    uint64_t data_offset;
+} MPIDI_SHM_ext_xpmem_send_long_with_info_req_t;
+
+typedef struct MPIDI_SHM_ext_hdr {
+    MPIDI_SHM_ext_am_hdr_type_t type;
+    union {
+        MPIDI_SHM_ext_xpmem_send_long_with_info_req_t xpmem_lireq;
+    };
+} MPIDI_SHM_ext_hdr_t;
+
 #define MPIDI_MAX_SHM_STRING_LEN 64
+/* TODO: The threshold is platform dependent and communication pattern
+ * dependent (e.g., buffer reuse). Do we want to introduce a CVAR or just
+ * keep it static as it is checked at perf-critical path ? */
+#define MPIDI_SHM_XPMEM_LMT_DATA_BYTES (4 * 1024)
 
 /* These typedef function definitions are used when not inlining the shared memory module along
  * with the struct of function pointers below. */

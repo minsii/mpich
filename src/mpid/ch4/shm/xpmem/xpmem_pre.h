@@ -11,6 +11,7 @@
 #ifndef XPMEM_PRE_H_INCLUDED
 #define XPMEM_PRE_H_INCLUDED
 
+#include <mpi.h>
 #include <xpmem.h>
 
 typedef struct {

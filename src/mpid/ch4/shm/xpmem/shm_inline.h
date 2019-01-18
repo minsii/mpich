@@ -14,5 +14,8 @@
 
 #include "xpmem_init.h"
 #include "xpmem_win.h"
+#include "xpmem_am.h"
+#include "xpmem_send.h"
+#include "xpmem_recv.h"
 
 #endif /* XPMEM_INLINE_H_INCLUDED */

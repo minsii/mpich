@@ -16,6 +16,9 @@
 
 #include <shm.h>
 #include "../posix/shm_inline.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/shm_inline.h"
+#endif
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_send_hdr(int rank, MPIR_Comm * comm,
                                                    int handler_id, const void *am_hdr,
@@ -120,11 +123,25 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_SHM_am_hdr_max_sz(void)
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_recv(MPIR_Request * req)
 {
     int ret;
+    MPIDI_SHM_ext_hdr_t *ext_hdr_ptr = MPIDI_CH4U_REQUEST(req, ext_am_hdr_ptr);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_RECV);
 
-    ret = MPIDI_POSIX_am_recv(req);
+    if (ext_hdr_ptr) {
+        ret = MPIDI_POSIX_am_recv(req);
+    } else {
+        switch (ext_hdr_ptr->type) {
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+            case MPIDI_SHM_XPMEM_SEND_LONG_WITH_INFO_REQ:
+                ret = MPIDI_XPMEM_am_handle_send_long_with_info_req(req);
+                break;
+#endif
+            default:
+                ret = MPIDI_POSIX_am_recv(req);
+                break;
+        }
+    }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_RECV);
     return ret;

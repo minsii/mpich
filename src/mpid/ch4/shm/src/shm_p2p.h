@@ -20,6 +20,20 @@
 #endif
 #include "../posix/shm_inline.h"
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_switch(MPI_Aint count, MPI_Datatype datatype)
+{
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    bool dt_contig;
+    size_t data_sz;
+
+    MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);
+    if (!dt_contig || data_sz > MPIDI_SHM_XPMEM_LMT_DATA_BYTES)
+        return MPIDI_SHM_GO_XPMEM;
+#endif
+
+    return MPIDI_SHM_GO_POSIX;
+}
+
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf, MPI_Aint count,
                                                 MPI_Datatype datatype, int rank, int tag,
                                                 MPIR_Comm * comm, int context_offset,
@@ -30,8 +44,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_send(const void *buf, MPI_Aint count,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_SEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_SEND);
 
-    ret =
-        MPIDI_POSIX_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (MPIDI_SHM_switch(count, datatype) == MPIDI_SHM_GO_XPMEM)
+        ret = MPIDI_XPMEM_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                   request);
+    else
+#endif
+        ret = MPIDI_POSIX_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                   request);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_SEND);
     return ret;
@@ -136,8 +156,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_isend(const void *buf, MPI_Aint count
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MPI_ISEND);
 
-    ret =
-        MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (MPIDI_SHM_switch(count, datatype) == MPIDI_SHM_GO_XPMEM)
+        ret = MPIDI_XPMEM_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                    request);
+    else
+#endif
+        ret = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                    request);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MPI_ISEND);
     return ret;
