@@ -19,6 +19,13 @@ typedef struct {
     int refcount;
 } MPIDI_XPMEM_segmap_t;
 
+typedef struct MPIDI_XPMEM_seg {
+    off_t offset;               /* page aligned offset */
+    size_t size;                /* page aligned size */
+    void *vaddr;
+    MPIDI_XPMEM_segmap_t *segmap_ptr;   /* pointer to my segmap */
+} MPIDI_XPMEM_seg_t;
+
 typedef struct {
     int num_local;
     int local_rank;
@@ -27,6 +34,11 @@ typedef struct {
     MPIDI_XPMEM_segmap_t *segmaps;      /* store registered segid for all local processes. */
     size_t sys_page_sz;
 } MPIDI_XPMEM_global_t;
+
+typedef struct {
+    MPIDI_XPMEM_seg_t **regist_segs;    /* store registered segments
+                                         * for all local processes in the window. */
+} MPIDI_XPMEM_win_t;
 
 extern MPIDI_XPMEM_global_t MPIDI_XPMEM_global;
 
