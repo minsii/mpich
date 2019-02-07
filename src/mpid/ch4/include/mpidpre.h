@@ -172,7 +172,7 @@ typedef struct MPIDIG_req_ext_t {
 typedef struct MPIDIG_req_t {
     union {
     MPIDI_NM_REQUEST_AM_DECL} netmod_am;
-    union {
+    struct {
     MPIDI_SHM_REQUEST_AM_DECL} shm_am;
     MPIDIG_req_ext_t *req;
     MPIDI_ptype p_type;         /* persistent request type */
