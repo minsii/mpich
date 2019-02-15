@@ -20,6 +20,15 @@
 #define XPMEM_DBG_PRINT(stmt, ...) do {} while (0)
 #endif
 
+#ifdef XPMEM_PT2PT_DEBUG
+#define XPMEM_PT2PT_DBG_PRINT(stmt,...) do {                                   \
+    printf("[%d] XPMEM "stmt, MPIR_Process.comm_world->rank, ## __VA_ARGS__);  \
+    fflush(stdout);                                                            \
+} while (0)
+#else
+#define XPMEM_PT2PT_DBG_PRINT(stmt, ...) do {} while (0)
+#endif
+
 #include "mpidimpl.h"
 
 #endif /* XPMEM_IMPL_H_INCLUDED */
