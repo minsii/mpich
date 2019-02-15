@@ -22,6 +22,15 @@
 #define XPMEM_DBG_PRINT(stmt, ...) do {} while (0)
 #endif
 
+#ifdef XPMEM_PT2PT_DEBUG
+#define XPMEM_PT2PT_DBG_PRINT(stmt,...) do {                                   \
+    printf("[%d] XPMEM "stmt, MPIR_Process.comm_world->rank, ## __VA_ARGS__);  \
+    fflush(stdout);                                                            \
+} while (0)
+#else
+#define XPMEM_PT2PT_DBG_PRINT(stmt, ...) do {} while (0)
+#endif
+
 /* Return global node rank of each process in the shared communicator.
  * I.e., rank in MPIR_Process.comm_world->node_comm. The caller routine
  * must allocate/free each buffer. */
