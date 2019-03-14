@@ -527,7 +527,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_win_detach_hook(MPIR_Win * win ATTR
 #define FUNCNAME MPIDI_POSIX_shm_win_init_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win, int *inited_flag)
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
     bool mapfail_flag = false;
@@ -538,7 +538,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win, int *
 
     posix_win = &win->dev.shm.posix;
     posix_win->shm_mutex_ptr = NULL;
-    *inited_flag = 0;
 
     if (shm_comm_ptr == NULL || !MPL_proc_mutex_enabled())
         goto fn_exit;
@@ -551,7 +550,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_shm_win_init_hook(MPIR_Win * win, int *
         if (shm_comm_ptr->rank == 0)
             MPIDI_POSIX_RMA_MUTEX_INIT(posix_win->shm_mutex_ptr);
 
-        *inited_flag = 1;
+        MPIDIG_WIN(win, shm_allocated) = 1;
     }
 
   fn_exit:

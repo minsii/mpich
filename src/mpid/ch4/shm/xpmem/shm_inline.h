@@ -13,5 +13,6 @@
 #define XPMEM_INLINE_H_INCLUDED
 
 #include "xpmem_init.h"
+#include "xpmem_win.h"
 
 #endif /* XPMEM_INLINE_H_INCLUDED */

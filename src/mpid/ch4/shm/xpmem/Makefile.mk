@@ -14,6 +14,7 @@
 if BUILD_SHM_XPMEM
 
 noinst_HEADERS += src/mpid/ch4/shm/xpmem/shm_inline.h   \
+                  src/mpid/ch4/shm/xpmem/xpmem_win.h    \
                   src/mpid/ch4/shm/xpmem/xpmem_impl.h   \
                   src/mpid/ch4/shm/xpmem/xpmem_init.h   \
                   src/mpid/ch4/shm/xpmem/xpmem_seg.h    \
