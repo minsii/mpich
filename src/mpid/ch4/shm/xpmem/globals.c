@@ -10,6 +10,16 @@
  */
 
 #include "mpidimpl.h"
+#include "xpmem_pre.h"
 #include "xpmem_impl.h"
 
 MPIDI_XPMEM_global_t MPIDI_XPMEM_global = { 0 };
+
+/* Preallocated segment objects */
+MPIDI_XPMEM_seg_t MPIDI_XPMEM_seg_mem_direct[MPIDI_XPMEM_SEG_PREALLOC] = { {0}
+};
+
+MPIR_Object_alloc_t MPIDI_XPMEM_seg_mem = { 0, 0, 0, 0, MPIR_XPMEM_SEG,
+    sizeof(MPIDI_XPMEM_seg_t), MPIDI_XPMEM_seg_mem_direct,
+    MPIDI_XPMEM_SEG_PREALLOC
+};
