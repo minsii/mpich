@@ -8,6 +8,9 @@
 #include "mpidimpl.h"
 #include "shm_noinline.h"
 #include "../posix/posix_noinline.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/xpmem_noinline.h"
+#endif
 
 int MPIDI_SHMI_mpi_comm_create_hook(MPIR_Comm * comm)
 {
@@ -87,6 +90,10 @@ int MPIDI_SHMI_mpi_op_free_hook(MPIR_Op * op)
     return ret;
 }
 
+#undef FUNCNAME
+#define FUNCNAME MPIDI_SHMI_mpi_win_create_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_SHMI_mpi_win_create_hook(MPIR_Win * win)
 {
     int ret;
@@ -95,9 +102,23 @@ int MPIDI_SHMI_mpi_win_create_hook(MPIR_Win * win)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHMI_MPI_WIN_CREATE_HOOK);
 
     ret = MPIDI_POSIX_mpi_win_create_hook(win);
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    if (ret)
+        MPIR_ERR_POP(ret);
 
+    ret = MPIDI_XPMEM_mpi_win_create_hook(win);
+#endif
+
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHMI_MPI_WIN_CREATE_HOOK);
     return ret;
+  fn_fail:
+    goto fn_exit;
+#else
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHMI_MPI_WIN_CREATE_HOOK);
+    return ret;
+#endif
 }
 
 int MPIDI_SHMI_mpi_win_allocate_hook(MPIR_Win * win)
@@ -165,6 +186,10 @@ int MPIDI_SHMI_mpi_win_detach_hook(MPIR_Win * win, const void *base)
     return ret;
 }
 
+#undef FUNCNAME
+#define FUNCNAME MPIDI_SHMI_mpi_win_free_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int MPIDI_SHMI_mpi_win_free_hook(MPIR_Win * win)
 {
     int ret;
@@ -172,8 +197,21 @@ int MPIDI_SHMI_mpi_win_free_hook(MPIR_Win * win)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHMI_MPI_WIN_FREE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHMI_MPI_WIN_FREE_HOOK);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+    ret = MPIDI_XPMEM_mpi_win_free_hook(win);
+    if (ret)
+        MPIR_ERR_POP(ret);
+#endif
     ret = MPIDI_POSIX_mpi_win_free_hook(win);
 
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHMI_MPI_WIN_FREE_HOOK);
     return ret;
+  fn_fail:
+    goto fn_exit;
+#else
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHMI_MPI_WIN_FREE_HOOK);
+    return ret;
+#endif
 }
