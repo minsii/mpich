@@ -8,14 +8,12 @@
  *  to Argonne National Laboratory subject to Software Grant and Corporate
  *  Contributor License Agreement dated February 8, 2012.
  */
+#ifndef XPMEM_NOINLINE_H_INCLUDED
+#define XPMEM_NOINLINE_H_INCLUDED
 
-#ifndef XPMEM_INLINE_H_INCLUDED
-#define XPMEM_INLINE_H_INCLUDED
+#include "mpidimpl.h"
 
-#include "xpmem_win.h"
-#include "xpmem_control.h"
-#include "xpmem_send.h"
-#include "xpmem_recv.h"
-#include "shm_noinline.h"
+int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag_bits);
+int MPIDI_XPMEM_mpi_finalize_hook(void);
 
-#endif /* XPMEM_INLINE_H_INCLUDED */
+#endif /* XPMEM_NOINLINE_H_INCLUDED */

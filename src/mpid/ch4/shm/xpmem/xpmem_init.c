@@ -8,9 +8,8 @@
  *  to Argonne National Laboratory subject to Software Grant and Corporate
  *  Contributor License Agreement dated February 8, 2012.
  */
-#ifndef XPMEM_INIT_H_INCLUDED
-#define XPMEM_INIT_H_INCLUDED
 
+#include "shm_noinline.h"
 #include "xpmem_impl.h"
 #include "xpmem_seg.h"
 
@@ -18,8 +17,7 @@
 #define FUNCNAME MPIDI_XPMEM_mpi_init_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided,
-                                                       int *tag_bits)
+int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag_bits)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, my_local_rank = -1, num_local = 0;
@@ -109,7 +107,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *
 #define FUNCNAME MPIDI_XPMEM_mpi_finalize_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_finalize_hook(void)
+int MPIDI_XPMEM_mpi_finalize_hook(void)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, ret = 0;
@@ -151,5 +149,3 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_finalize_hook(void)
   fn_fail:
     goto fn_exit;
 }
-
-#endif /* XPMEM_INIT_H_INCLUDED */
