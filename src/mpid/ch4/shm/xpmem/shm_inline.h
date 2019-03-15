@@ -12,7 +12,6 @@
 #ifndef XPMEM_INLINE_H_INCLUDED
 #define XPMEM_INLINE_H_INCLUDED
 
-#include "xpmem_win.h"
 #include "xpmem_control.h"
 #include "xpmem_send.h"
 #include "xpmem_recv.h"

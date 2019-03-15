@@ -11,7 +11,7 @@
 #ifndef XPMEM_WIN_H_INCLUDED
 #define XPMEM_WIN_H_INCLUDED
 
-#include "ch4_impl.h"
+#include "shm_noinline.h"
 #include "xpmem_impl.h"
 #include "xpmem_seg.h"
 #include "../posix/posix_win.h"
@@ -20,7 +20,7 @@
 #define FUNCNAME MPIDI_XPMEM_mpi_win_create_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_win_create_hook(MPIR_Win * win)
+int MPIDI_XPMEM_mpi_win_create_hook(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_XPMEM_win_t *xpmem_win = NULL;
@@ -122,7 +122,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_win_create_hook(MPIR_Win * win)
 #define FUNCNAME MPIDI_XPMEM_mpi_win_free_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_mpi_win_free_hook(MPIR_Win * win)
+int MPIDI_XPMEM_mpi_win_free_hook(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
