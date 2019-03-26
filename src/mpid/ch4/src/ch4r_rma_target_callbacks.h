@@ -1671,6 +1671,8 @@ static inline int MPIDIG_put_iov_target_msg_cb(int handler_id, void *am_hdr,
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
     struct iovec *dt_iov;
+    uintptr_t base;
+    size_t offset;
 
     MPIR_Win *win;
     MPIDIG_put_msg_t *msg_hdr = (MPIDIG_put_msg_t *) am_hdr;
@@ -1690,6 +1692,9 @@ static inline int MPIDIG_put_iov_target_msg_cb(int handler_id, void *am_hdr,
 
     MPIDIG_REQUEST(rreq, req->preq.win_ptr) = win;
 
+    offset = win->disp_unit * msg_hdr->target_disp;
+    base = MPIDIG_win_base_at_target(win);
+
     *target_cmpl_cb = MPIDIG_put_iov_target_cmpl_cb;
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     MPIDI_REQUEST(rreq, is_local) = is_local;
@@ -1703,6 +1708,7 @@ static inline int MPIDIG_put_iov_target_msg_cb(int handler_id, void *am_hdr,
 
     MPIDIG_REQUEST(rreq, req->preq.dt_iov) = dt_iov;
     MPIDIG_REQUEST(rreq, req->preq.n_iov) = msg_hdr->n_iov;
+    MPIDIG_REQUEST(*req, req->preq.target_addr) = (void *) (offset + base);
     *is_contig = 1;
     *data = dt_iov;
     *p_data_sz = msg_hdr->n_iov * sizeof(struct iovec);
@@ -1929,7 +1935,6 @@ static inline int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr,
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
     MPIDIG_put_dat_msg_t *msg_hdr = (MPIDIG_put_dat_msg_t *) am_hdr;
-    MPIR_Win *win;
     struct iovec *iov;
     uintptr_t base;
     int i;
@@ -1939,10 +1944,10 @@ static inline int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr,
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_put_data);
 
     rreq = (MPIR_Request *) msg_hdr->preq_ptr;
-    win = MPIDIG_REQUEST(rreq, req->preq.win_ptr);
-    base = MPIDIG_win_base_at_target(win);
+    base = (uintptr_t) MPIDIG_REQUEST(rreq, req->preq.target_addr);
 
-    /* Adjust the target addresses using the window base address */
+    /* Adjust the target iov addresses using the base address
+     * (window base + target_disp) */
     iov = (struct iovec *) MPIDIG_REQUEST(rreq, req->preq.dt_iov);
     for (i = 0; i < MPIDIG_REQUEST(rreq, req->preq.n_iov); i++)
         iov[i].iov_base = (char *) iov[i].iov_base + base;
