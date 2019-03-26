@@ -852,7 +852,8 @@ static inline void MPIDIG_handle_acc_data(void **data, size_t * p_data_sz, int *
 
     MPIDIG_REQUEST(rreq, req->areq.data) = p_data;
 
-    /* Adjust the target addresses using the window base address */
+    /* Adjust the target iov addresses using the base address
+     * (window base + target_disp) */
     iov = (struct iovec *) MPIDIG_REQUEST(rreq, req->areq.dt_iov);
     for (i = 0; i < MPIDIG_REQUEST(rreq, req->areq.n_iov); i++)
         iov[i].iov_base = (char *) iov[i].iov_base + base;
