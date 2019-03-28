@@ -1345,6 +1345,11 @@ static inline int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
            !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+
+        OFI_RMA_DBG("[%d] %s: fallback, disable_shm_accumulate=%d\n",
+                    win->comm_ptr->rank, __FUNCTION__, MPIDIG_WIN(win,
+                                                                  info_args).disable_shm_accumulate);
+
         mpi_errno = MPIDIG_mpi_fetch_and_op(origin_addr, result_addr, datatype, target_rank,
                                             target_disp, op, win);
         goto fn_exit;
