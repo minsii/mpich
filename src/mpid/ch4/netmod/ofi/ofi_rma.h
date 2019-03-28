@@ -1504,6 +1504,11 @@ static inline int MPIDI_NM_mpi_get_accumulate(const void *origin_addr,
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
            !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+
+        OFI_RMA_DBG("[%d] %s: fallback, disable_shm_accumulate=%d\n",
+                    win->comm_ptr->rank, __FUNCTION__, MPIDIG_WIN(win,
+                                                                  info_args).disable_shm_accumulate);
+
         mpi_errno = MPIDIG_mpi_get_accumulate(origin_addr, origin_count, origin_datatype,
                                               result_addr, result_count, result_datatype,
                                               target_rank, target_disp, target_count,
@@ -1548,6 +1553,11 @@ static inline int MPIDI_NM_mpi_accumulate(const void *origin_addr,
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
            !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+
+        OFI_RMA_DBG("[%d] %s: fallback, disable_shm_accumulate=%d\n",
+                    win->comm_ptr->rank, __FUNCTION__, MPIDIG_WIN(win,
+                                                                  info_args).disable_shm_accumulate);
+
         mpi_errno = MPIDIG_mpi_accumulate(origin_addr, origin_count, origin_datatype, target_rank,
                                           target_disp, target_count, target_datatype, op, win);
         goto fn_exit;
