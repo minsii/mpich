@@ -17,6 +17,15 @@
 #define MPIDI_OFI_QUERY_FETCH_ATOMIC_COUNT   1
 #define MPIDI_OFI_QUERY_COMPARE_ATOMIC_COUNT 2
 
+#ifdef ENABLE_OFI_RMA_DBG
+#define OFI_RMA_DBG(str,...) do { \
+    fprintf(stdout, str, ## __VA_ARGS__); \
+    fflush(stdout); \
+    } while (0)
+#else
+#define OFI_RMA_DBG(str,...) do {} while (0)
+#endif
+
 #define MPIDI_OFI_INIT_CHUNK_CONTEXT(win,sigreq)                        \
     do {                                                                \
     if (sigreq) {                                                        \
@@ -418,6 +427,8 @@ static inline int MPIDI_OFI_do_put(const void *origin_addr,
                                               + target_true_lb, MPIDI_OFI_winfo_mr_key(win,
                                                                                        target_rank)),
                               rdma_inject_write);
+        OFI_RMA_DBG("[%d] %s: fi_inject_write, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                    origin_bytes);
         goto null_op_exit;
     } else if (origin_contig && target_contig) {
         MPIDI_OFI_INIT_SIGNAL_REQUEST(win, sigreq, &flags);
@@ -437,6 +448,8 @@ static inline int MPIDI_OFI_do_put(const void *origin_addr,
         riov.key = MPIDI_OFI_winfo_mr_key(win, target_rank);
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_writemsg(MPIDI_OFI_WIN(win).ep, &msg, flags), rdma_write);
+        OFI_RMA_DBG("[%d] %s: contig fi_writemsg, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                    origin_bytes);
         goto fn_exit;
     }
 
@@ -491,6 +504,8 @@ static inline int MPIDI_OFI_do_put(const void *origin_addr,
                               fi_writemsg(ep, &msg, flags), rdma_write);
     }
 
+    OFI_RMA_DBG("[%d] %s: iov fi_writemsg, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                origin_bytes);
     MPIDI_OFI_finalize_seg_state(p);
 
   fn_exit:
@@ -613,6 +628,8 @@ static inline int MPIDI_OFI_do_get(void *origin_addr,
         riov.key = MPIDI_OFI_winfo_mr_key(win, target_rank);
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_readmsg(MPIDI_OFI_WIN(win).ep, &msg, flags), rdma_write);
+        OFI_RMA_DBG("[%d] %s: contig fi_readmsg, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                    target_bytes);
         goto fn_exit;
     }
 
@@ -665,6 +682,8 @@ static inline int MPIDI_OFI_do_get(void *origin_addr,
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_readmsg(ep, &msg, flags), rdma_write);
     }
+    OFI_RMA_DBG("[%d] %s: iov fi_readmsg, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                target_bytes);
 
     MPIDI_OFI_finalize_seg_state(p);
 
@@ -763,7 +782,7 @@ static inline int MPIDI_NM_mpi_compare_and_swap(const void *origin_addr,
     int mpi_errno = MPI_SUCCESS;
     enum fi_op fi_op;
     enum fi_datatype fi_dt;
-    size_t offset, max_count, max_size, dt_size, bytes;
+    size_t offset, max_count = -1, max_size = -1, dt_size = -1, bytes;
     MPI_Aint true_lb;
     void *buffer, *tbuffer, *rbuffer;
     struct fi_ioc originv MPL_ATTR_ALIGNED(MPIDI_OFI_IOVEC_ALIGN);
@@ -845,6 +864,8 @@ static inline int MPIDI_NM_mpi_compare_and_swap(const void *origin_addr,
     MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_win_cntr_incr(win),
                           fi_compare_atomicmsg(MPIDI_OFI_WIN(win).ep, &msg,
                                                &comparev, NULL, 1, &resultv, NULL, 1, 0), atomicto);
+    OFI_RMA_DBG("[%d] %s: fi_compare_atomicmsg, bytes %ld\n", win->comm_ptr->rank, __FUNCTION__,
+                dt_size);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_COMPARE_AND_SWAP);
     return mpi_errno;
@@ -857,6 +878,8 @@ static inline int MPIDI_NM_mpi_compare_and_swap(const void *origin_addr,
          * For now, there is no FI flag to track atomic only ops, we use RMA level cntr. */
         MPIDI_OFI_win_progress_fence(win);
     }
+    OFI_RMA_DBG("[%d] %s: fallback, max_count %ld, max_size %ld (<dt_size %ld)\n",
+                win->comm_ptr->rank, __FUNCTION__, max_count, max_size, dt_size);
     return MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr, datatype,
                                        target_rank, target_disp, win);
 }
@@ -975,6 +998,9 @@ static inline int MPIDI_OFI_do_accumulate(const void *origin_addr,
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_atomicmsg(ep, &msg, flags), rdma_atomicto);
     }
+
+    OFI_RMA_DBG("[%d] %s: iov fi_atomicmsg, bytes %ld, niovs %d,%d\n", win->comm_ptr->rank,
+                __FUNCTION__, origin_bytes, msg.iov_count, msg.rma_iov_count);
 
     MPIDI_OFI_finalize_seg_state(p);
 
@@ -1149,6 +1175,9 @@ static inline int MPIDI_OFI_do_get_accumulate(const void *origin_addr,
                                                  NULL, rout, flags), rdma_readfrom);
     }
 
+    OFI_RMA_DBG("[%d] %s: iov fi_fetch_atomicmsg, niovs %d,%d\n", win->comm_ptr->rank, __FUNCTION__,
+                msg.iov_count, msg.rma_iov_count);
+
     if (op != MPI_NO_OP)
         MPIDI_OFI_finalize_seg_state2(p);
     else
@@ -1296,7 +1325,7 @@ static inline int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
     int mpi_errno = MPI_SUCCESS;
     enum fi_op fi_op;
     enum fi_datatype fi_dt;
-    size_t offset, max_count, max_size, dt_size, bytes;
+    size_t offset, max_count = -1, max_size = -1, dt_size = -1, bytes;
     MPI_Aint true_lb ATTRIBUTE((unused));
     void *buffer, *tbuffer, *rbuffer;
     struct fi_ioc originv MPL_ATTR_ALIGNED(MPIDI_OFI_IOVEC_ALIGN);
@@ -1378,6 +1407,9 @@ static inline int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
                           fi_fetch_atomicmsg(MPIDI_OFI_WIN(win).ep, &msg, &resultv,
                                              NULL, 1, 0), rdma_readfrom);
 
+    OFI_RMA_DBG("[%d] %s: fi_atomicmsg, bytes %ld, op 0x%lx\n", win->comm_ptr->rank, __FUNCTION__,
+                dt_size, (uint64_t) op);
+
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_FETCH_AND_OP);
     return mpi_errno;
@@ -1396,6 +1428,8 @@ static inline int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
             MPIDI_OFI_win_progress_fence(win);
         }
     }
+    OFI_RMA_DBG("[%d] %s: fallback, max_count %ld, max_size %ld (<dt_size %ld)\n",
+                win->comm_ptr->rank, __FUNCTION__, max_count, max_size, dt_size);
     return MPIDIG_mpi_fetch_and_op(origin_addr, result_addr, datatype, target_rank, target_disp, op,
                                    win);
 }

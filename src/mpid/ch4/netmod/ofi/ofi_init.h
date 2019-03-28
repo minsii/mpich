@@ -1390,7 +1390,9 @@ static inline int MPIDI_OFI_application_hints(int rank)
         fprintf(stdout, "MPIDI_OFI_SOURCE_BITS: %d\n", MPIDI_OFI_SOURCE_BITS);
         fprintf(stdout, "MPIDI_OFI_TAG_BITS: %d\n", MPIDI_OFI_TAG_BITS);
         fprintf(stdout, "======================================\n");
-
+#ifdef ENABLE_OFI_RMA_DBG
+        fprintf(stdout, "ENABLE_OFI_RMA_DBG enabled\n");
+#endif
         /* Discover the maximum number of ranks. If the source shift is not
          * defined, there are 32 bits in use due to the uint32_t used in
          * ofi_send.h */
