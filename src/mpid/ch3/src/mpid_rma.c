@@ -48,7 +48,6 @@ MPIR_Win *MPIDI_RMA_Win_active_list_head = NULL, *MPIDI_RMA_Win_inactive_list_he
 int MPIDI_CH3I_RMA_Active_req_cnt = 0;
 
 /* This variable stores the index of RMA progress hook in progress hook array */
-int MPIDI_CH3I_RMA_Progress_hook_id = 0;
 
 static int win_init(MPI_Aint size, int disp_unit, int create_flavor, int model, MPIR_Info * info,
                     MPIR_Comm * comm_ptr, MPIR_Win ** win_ptr);
@@ -369,7 +368,7 @@ static int win_init(MPI_Aint size, int disp_unit, int create_flavor, int model, 
     if (MPIDI_RMA_Win_inactive_list_head == NULL && MPIDI_RMA_Win_active_list_head == NULL) {
         /* this is the first window, register RMA progress hook */
         mpi_errno = MPID_Progress_register_hook(MPIDI_CH3I_RMA_Make_progress_global,
-                                                &MPIDI_CH3I_RMA_Progress_hook_id);
+                                                MPIDI_CH3I_RMA_PROGRESS_HOOK_ID);
         if (mpi_errno) {
             MPIR_ERR_POP(mpi_errno);
         }

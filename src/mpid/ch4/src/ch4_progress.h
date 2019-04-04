@@ -35,22 +35,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Progress_test(int flags)
 #endif
 
     if (flags & MPIDI_PROGRESS_HOOKS) {
-        for (i = 0; i < MPIDI_global.registered_progress_hooks; i++) {
-            progress_func_ptr_t func_ptr = NULL;
-            MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);
-            if (MPIDI_global.progress_hooks[i].active == TRUE) {
-                MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);
-                func_ptr = MPIDI_global.progress_hooks[i].func_ptr;
-                MPIR_Assert(func_ptr != NULL);
-                mpi_errno = func_ptr(&made_progress);
-                if (mpi_errno)
-                    MPIR_ERR_POP(mpi_errno);
-
-            } else {
-                MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);
-            }
-
-        }
+        MPIDI_PROGRESS_HOOK_TEST(MPIR_NBC_PROGRESS_HOOK_ID, &made_progress);
+        MPIDI_PROGRESS_HOOK_TEST(MPII_GENUTIL_PROGRESS_HOOK_ID, &made_progress);
+#if defined HAVE_LIBHCOLL
+        MPIDI_PROGRESS_HOOK_TEST(HCOLL_PROGRESS_HOOK_ID, &made_progress);
+#endif
     }
     /* todo: progress unexp_list */
 
@@ -161,27 +150,30 @@ MPL_STATIC_INLINE_PREFIX int MPID_Progress_wait(MPID_Progress_state * state)
 #define FUNCNAME MPID_Progress_register
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-MPL_STATIC_INLINE_PREFIX int MPID_Progress_register(int (*progress_fn) (int *), int *id)
+MPL_STATIC_INLINE_PREFIX int MPID_Progress_register(int (*progress_fn) (int *), int id)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_PROGRESS_REGISTER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_PROGRESS_REGISTER);
 
-    for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
-        if (MPIDI_global.progress_hooks[i].func_ptr == NULL) {
-            MPIDI_global.progress_hooks[i].func_ptr = progress_fn;
-            MPIDI_global.progress_hooks[i].active = FALSE;
-            break;
-        }
-    }
-
-    if (i >= MAX_PROGRESS_HOOKS)
-        goto fn_fail;
+    /*for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
+     * if (MPIDI_global.progress_hooks[i].func_ptr == NULL) {
+     * MPIDI_global.progress_hooks[i].func_ptr = progress_fn;
+     * MPIDI_global.progress_hooks[i].active = FALSE;
+     * break;
+     * }
+     * }
+     *
+     * if (i >= MAX_PROGRESS_HOOKS)
+     * goto fn_fail; */
+    MPIR_Assert(id < MAX_PROGRESS_HOOKS);
+    MPIDI_global.progress_hooks[id].func_ptr = progress_fn;
+    MPIDI_global.progress_hooks[id].active = FALSE;
 
     MPIDI_global.registered_progress_hooks++;
 
-    (*id) = i;
+    //(*id) = i;
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_PROGRESS_REGISTER);

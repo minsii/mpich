@@ -17,7 +17,6 @@
 #include "utarray.h"
 
 extern MPII_Coll_queue_t coll_queue;
-extern int MPII_Genutil_progress_hook_id;
 
 /* vertex copy function, required by utarray */
 void MPII_Genutil_vtx_copy(void *_dst, const void *_src);

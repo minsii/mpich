@@ -254,7 +254,7 @@ int MPII_Genutil_progress_hook(int *made_progress)
     }
 
     if (coll_queue.head == NULL)
-        MPID_Progress_deactivate_hook(MPII_Genutil_progress_hook_id);
+        MPID_Progress_deactivate_hook(MPII_GENUTIL_PROGRESS_HOOK_ID);
 
     return mpi_errno;
 }

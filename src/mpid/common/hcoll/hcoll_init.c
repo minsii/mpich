@@ -25,7 +25,6 @@ cvars:
 */
 
 static int hcoll_comm_world_initialized = 0;
-static int hcoll_progress_hook_id = 0;
 
 int hcoll_initialized = 0;
 int hcoll_enable = -1;
@@ -57,8 +56,8 @@ int hcoll_destroy(void *param ATTRIBUTE((unused)))
 {
     if (1 == hcoll_initialized) {
         hcoll_finalize();
-        MPID_Progress_deactivate_hook(hcoll_progress_hook_id);
-        MPID_Progress_deregister_hook(hcoll_progress_hook_id);
+        MPID_Progress_deactivate_hook(HCOLL_PROGRESS_HOOK_ID);
+        MPID_Progress_deregister_hook(HCOLL_PROGRESS_HOOK_ID);
     }
     hcoll_initialized = 0;
     return 0;
@@ -111,11 +110,11 @@ int hcoll_initialize(void)
 
     if (!hcoll_initialized) {
         hcoll_initialized = 1;
-        mpi_errno = MPID_Progress_register_hook(hcoll_do_progress, &hcoll_progress_hook_id);
+        mpi_errno = MPID_Progress_register_hook(hcoll_do_progress, HCOLL_PROGRESS_HOOK_ID);
         if (mpi_errno)
             MPIR_ERR_POP(mpi_errno);
 
-        MPID_Progress_activate_hook(hcoll_progress_hook_id);
+        MPID_Progress_activate_hook(HCOLL_PROGRESS_HOOK_ID);
     }
     MPIR_Add_finalize(hcoll_destroy, 0, 0);
 

@@ -34,8 +34,6 @@ cvars:
 
 MPII_Coll_queue_t coll_queue = { NULL };
 
-int MPII_Genutil_progress_hook_id = 0;
-
 #undef FUNCNAME
 #define FUNCNAME MPII_Gentran_init
 #undef FCNAME
@@ -45,7 +43,7 @@ int MPII_Gentran_init()
     int mpi_errno = MPI_SUCCESS;
 
     mpi_errno =
-        MPID_Progress_register_hook(MPII_Genutil_progress_hook, &MPII_Genutil_progress_hook_id);
+        MPID_Progress_register_hook(MPII_Genutil_progress_hook, MPII_GENUTIL_PROGRESS_HOOK_ID);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
@@ -89,7 +87,7 @@ int MPII_Gentran_finalize()
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPID_Progress_deregister_hook(MPII_Genutil_progress_hook_id);
+    MPID_Progress_deregister_hook(MPII_GENUTIL_PROGRESS_HOOK_ID);
 
     return mpi_errno;
 }

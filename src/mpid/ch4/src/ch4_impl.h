@@ -461,6 +461,22 @@ static inline int MPIDIU_valid_group_rank(MPIR_Comm * comm, int rank, MPIR_Group
  * insert it here for simplicity, but this might not be the best place. One
  * needs to investigate the appropriate place to yield the lock. */
 
+#define MPIDI_PROGRESS_HOOK_TEST(id_, made_progress_)                 \
+do {                                                                  \
+    progress_func_ptr_t func_ptr = NULL;                              \
+    MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);     \
+    if (MPIDI_global.progress_hooks[id_].active == TRUE) {            \
+        MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);  \
+        func_ptr = MPIDI_global.progress_hooks[id_].func_ptr;         \
+        MPIR_Assert(func_ptr != NULL);                               \
+        mpi_errno = func_ptr(made_progress_);                          \
+        if (mpi_errno)                                                \
+            MPIR_ERR_POP(mpi_errno);                                  \
+    } else {                                                          \
+        MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_PROGRESS_HOOK_MUTEX);  \
+    }                                                                 \
+} while (0)
+
 #define MPIDIU_PROGRESS()                                   \
     do {                                                        \
         mpi_errno = MPID_Progress_test();                       \

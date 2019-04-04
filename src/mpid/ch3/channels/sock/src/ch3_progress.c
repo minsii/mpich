@@ -979,7 +979,7 @@ int MPIDI_CH3I_Progress(int blocking, MPID_Progress_state * state)
 #define FUNCNAME MPIDI_CH3I_Progress_register_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDI_CH3I_Progress_register_hook(int (*progress_fn) (int *), int *id)
+int MPIDI_CH3I_Progress_register_hook(int (*progress_fn) (int *), int id)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
@@ -988,21 +988,24 @@ int MPIDI_CH3I_Progress_register_hook(int (*progress_fn) (int *), int *id)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH3I_PROGRESS_REGISTER_HOOK);
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
 
-    for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
-        if (progress_hooks[i].func_ptr == NULL) {
-            progress_hooks[i].func_ptr = progress_fn;
-            progress_hooks[i].active = FALSE;
-            break;
-        }
-    }
-
-    if (i >= MAX_PROGRESS_HOOKS) {
-        return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
-                                    "MPIDI_CH3I_Progress_register_hook", __LINE__,
-                                    MPI_ERR_INTERN, "**progresshookstoomany", 0);
-    }
-
-    (*id) = i;
+    /*for (i = 0; i < MAX_PROGRESS_HOOKS; i++) {
+     * if (progress_hooks[i].func_ptr == NULL) {
+     * progress_hooks[i].func_ptr = progress_fn;
+     * progress_hooks[i].active = FALSE;
+     * break;
+     * }
+     * }
+     *
+     * if (i >= MAX_PROGRESS_HOOKS) {
+     * return MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+     * "MPIDI_CH3I_Progress_register_hook", __LINE__,
+     * MPI_ERR_INTERN, "**progresshookstoomany", 0);
+     * }
+     *
+     * (*id) = i; */
+    MPIR_Assert(i < MAX_PROGRESS_HOOKS);
+    progress_hooks[id].func_ptr = progress_fn;
+    progress_hooks[id].active = FALSE;
 
   fn_exit:
     MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);

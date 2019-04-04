@@ -21,7 +21,11 @@
 #include "../algorithms/treealgo/treealgo.h"
 #include "../algorithms/recexchalgo/recexchalgo.h"
 
-extern int MPIR_Nbc_progress_hook_id;
+/* FIXME: These should be moved to a global-macros place, also unify the names of all hook id macros. */
+#define MPIR_NBC_PROGRESS_HOOK_ID 0
+#define MPII_GENUTIL_PROGRESS_HOOK_ID 1
+#define MPIDI_CH3I_RMA_PROGRESS_HOOK_ID 2
+#define HCOLL_PROGRESS_HOOK_ID 3
 
 /* Enumerate the list of algorithms */
 typedef enum MPIR_Allgather_intra_algo_t {

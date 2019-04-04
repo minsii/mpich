@@ -215,7 +215,7 @@ MPL_STATIC_INLINE_PREFIX int MPID_Request_is_anysource(MPIR_Request * request_pt
 int MPIDI_CH3I_Comm_create_hook(struct MPIR_Comm *);
 int MPIDI_CH3I_Comm_destroy_hook(struct MPIR_Comm *);
 
-int MPIDI_CH3I_Progress_register_hook(int (*progress_fn)(int*), int *id);
+int MPIDI_CH3I_Progress_register_hook(int (*progress_fn)(int*), int id);
 int MPIDI_CH3I_Progress_deregister_hook(int id);
 int MPIDI_CH3I_Progress_activate_hook(int id);
 int MPIDI_CH3I_Progress_deactivate_hook(int id);
