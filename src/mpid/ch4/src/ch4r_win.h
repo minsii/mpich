@@ -1831,7 +1831,7 @@ static inline int MPIDIG_mpi_win_create_dynamic(MPIR_Info * info, MPIR_Comm * co
 #define FUNCNAME MPIDIG_mpi_win_flush_local
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win)
+MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_LOCAL);
@@ -1901,7 +1901,7 @@ static inline int MPIDIG_mpi_win_sync(MPIR_Win * win)
 #define FUNCNAME MPIDIG_mpi_win_flush_all
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
+MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
     int all_remote_completed = 0;

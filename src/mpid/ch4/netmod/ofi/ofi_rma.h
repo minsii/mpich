@@ -381,14 +381,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_allocate_win_request_get_accumulate(MPIR_
 #define FUNCNAME MPIDI_OFI_do_put
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_OFI_do_put(const void *origin_addr,
-                                   int origin_count,
-                                   MPI_Datatype origin_datatype,
-                                   int target_rank,
-                                   MPI_Aint target_disp,
-                                   int target_count,
-                                   MPI_Datatype target_datatype,
-                                   MPIR_Win * win, MPIDI_av_entry_t * addr, MPIR_Request ** sigreq)
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
+                                              int origin_count,
+                                              MPI_Datatype origin_datatype,
+                                              int target_rank,
+                                              MPI_Aint target_disp,
+                                              int target_count,
+                                              MPI_Datatype target_datatype,
+                                              MPIR_Win * win, MPIDI_av_entry_t * addr,
+                                              MPIR_Request ** sigreq)
 {
     int rc, mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_win_request_t *req = NULL;
