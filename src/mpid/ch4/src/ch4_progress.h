@@ -25,7 +25,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_Progress_test(int flags)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PROGRESS_TEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PROGRESS_TEST);
 
-#ifdef HAVE_SIGNAL
+#if defined(HAVE_SIGNAL) && !defined(DISABLE_PROGRESS_SIGNAL)
     if (MPIDI_CH4_Global.sigusr1_count > MPIDI_CH4_Global.my_sigusr1_count) {
         MPIDI_CH4_Global.my_sigusr1_count = MPIDI_CH4_Global.sigusr1_count;
         mpi_errno = MPIDI_check_for_failed_procs();
