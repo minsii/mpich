@@ -13,15 +13,13 @@
 #include "xpmem_noinline.h"
 #include "build_nodemap.h"
 #include "xpmem_seg.h"
+#include "mpidu_init_shm.h"
 
 int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag_bits)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, my_local_rank = -1, num_local = 0;
-    xpmem_segid_t *xpmem_segids = NULL;
     int local_rank_0 = -1;
-    MPIDU_shm_seg_t shm_seg;
-    MPIDU_shm_barrier_t *shm_seg_barrier = NULL;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_INIT_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_INIT_HOOK);
@@ -41,22 +39,8 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag
     MPIDI_XPMEM_global.local_rank = my_local_rank;
     MPIDI_XPMEM_global.node_group_ptr = NULL;
 
-    /* Allocate temporary shared buffer to exchange xpmem segids with all
-     * local processes. TODO: is there a better way to exchange at init ? */
-    mpi_errno = MPIDU_shm_seg_alloc(num_local * sizeof(xpmem_segid_t),
-                                    (void **) &xpmem_segids, MPL_MEM_SHM);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
-    mpi_errno = MPIDU_shm_seg_commit(&shm_seg,
-                                     &shm_seg_barrier,
-                                     num_local, my_local_rank, local_rank_0, rank, MPL_MEM_SHM);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
-
-    xpmem_segids[my_local_rank] = MPIDI_XPMEM_global.segid;
-    mpi_errno = MPIDU_shm_barrier(shm_seg_barrier, num_local);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
+    MPIDU_Init_shm_put(&MPIDI_XPMEM_global.segid, sizeof(xpmem_segid_t));
+    MPIDU_Init_shm_barrier();
 
     /* Initialize segmap for every local processes */
     MPIDI_XPMEM_global.segmaps = NULL;
@@ -64,20 +48,12 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag
                         sizeof(MPIDI_XPMEM_segmap_t) * num_local,
                         mpi_errno, "xpmem segmaps", MPL_MEM_SHM);
     for (i = 0; i < num_local; i++) {
-        MPIDI_XPMEM_global.segmaps[i].remote_segid = xpmem_segids[i];
+        MPIDU_Init_shm_get(i, sizeof(xpmem_segid_t), &MPIDI_XPMEM_global.segmaps[i].remote_segid);
         MPIDI_XPMEM_global.segmaps[i].apid = -1;        /* get apid at the first communication  */
 
         /* Init AVL tree based segment cache */
         MPIDI_XPMEM_segtree_init(&MPIDI_XPMEM_global.segmaps[i].segcache);
     }
-
-    /* Free temporary shared buffer */
-    mpi_errno = MPIDU_shm_barrier(shm_seg_barrier, num_local);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
-    mpi_errno = MPIDU_shm_seg_destroy(&shm_seg, num_local);
-    if (mpi_errno)
-        MPIR_ERR_POP(mpi_errno);
 
     /* Initialize other global parameters */
     MPIDI_XPMEM_global.sys_page_sz = (size_t) sysconf(_SC_PAGESIZE);
