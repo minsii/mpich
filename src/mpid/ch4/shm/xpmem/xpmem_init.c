@@ -34,8 +34,7 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag
                                           MPIDI_XPMEM_PERMIT_VALUE);
     /* 64-bit segment ID or failure(-1) */
     MPIR_ERR_CHKANDJUMP(MPIDI_XPMEM_global.segid == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_make");
-    MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE, (MPL_DBG_FDEST, "xpmem_init: make segid: 0x%lx\n",
-                                              (uint64_t) MPIDI_XPMEM_global.segid));
+    XPMEM_TRACE("init: make segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
 
     MPIR_NODEMAP_get_local_info(rank, size, MPIDI_global.node_map[0], &num_local,
                                 &my_local_rank, &local_rank_0);
@@ -82,10 +81,8 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
          * MPIDI_XPMEM_segtree_tree_delete_all will call xpmem_detach */
         MPIDI_XPMEM_segtree_delete_all(&MPIDI_XPMEM_global.segmaps[i].segcache);
         if (MPIDI_XPMEM_global.segmaps[i].apid != -1) {
-            MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                            (MPL_DBG_FDEST,
-                             "xpmem_finalize: release apid: node_rank %d, 0x%lx\n",
-                             i, (uint64_t) MPIDI_XPMEM_global.segmaps[i].apid));
+            XPMEM_TRACE("finalize: release apid: node_rank %d, 0x%lx\n",
+                        i, (uint64_t) MPIDI_XPMEM_global.segmaps[i].apid);
             ret = xpmem_release(MPIDI_XPMEM_global.segmaps[i].apid);
             /* success(0) or failure(-1) */
             MPIR_ERR_CHKANDJUMP(ret == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_release");
@@ -95,9 +92,7 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
     MPL_free(MPIDI_XPMEM_global.segmaps);
 
     if (MPIDI_XPMEM_global.segid != -1) {
-        MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                        (MPL_DBG_FDEST, "xpmem_finalize: remove segid: 0x%lx\n",
-                         (uint64_t) MPIDI_XPMEM_global.segid));
+        XPMEM_TRACE("finalize: remove segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
         ret = xpmem_remove(MPIDI_XPMEM_global.segid);
         /* success(0) or failure(-1) */
         MPIR_ERR_CHKANDJUMP(ret == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_remove");
