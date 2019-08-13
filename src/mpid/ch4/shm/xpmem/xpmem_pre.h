@@ -72,4 +72,10 @@ extern MPIR_Object_alloc_t MPIDI_XPMEM_seg_mem;
 
 #define MPIDI_XPMEM_REQUEST(req, field)      ((req)->dev.ch4.am.shm_am.xpmem.field)
 
+#ifdef MPL_USE_DBG_LOGGING
+extern MPL_dbg_class MPIDI_CH4_SHM_XPMEM_GENERAL;
+#endif
+#define XPMEM_TRACE(...) \
+    MPL_DBG_MSG_FMT(MPIDI_CH4_SHM_XPMEM_GENERAL,VERBOSE,(MPL_DBG_FDEST, "XPMEM "__VA_ARGS__))
+
 #endif /* XPMEM_PRE_H_INCLUDED */

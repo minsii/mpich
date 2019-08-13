@@ -23,3 +23,7 @@ MPIR_Object_alloc_t MPIDI_XPMEM_seg_mem = { 0, 0, 0, 0, MPIR_XPMEM_SEG,
     sizeof(MPIDI_XPMEM_seg_t), MPIDI_XPMEM_seg_mem_direct,
     MPIDI_XPMEM_SEG_PREALLOC
 };
+
+#ifdef MPL_USE_DBG_LOGGING
+MPL_dbg_class MPIDI_CH4_SHM_XPMEM_GENERAL;
+#endif

@@ -25,6 +25,10 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *n_vcis_provided, int *tag
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_INIT_HOOK);
     MPIR_CHKPMEM_DECL(1);
 
+#ifdef MPL_USE_DBG_LOGGING
+    MPIDI_CH4_SHM_XPMEM_GENERAL = MPL_dbg_class_alloc("SHM_XPMEM", "shm_xpmem");
+#endif /* MPL_USE_DBG_LOGGING */
+
     /* Try to share entire address space */
     MPIDI_XPMEM_global.segid = xpmem_make(0, XPMEM_MAXADDR_SIZE, XPMEM_PERMIT_MODE,
                                           MPIDI_XPMEM_PERMIT_VALUE);
