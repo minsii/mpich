@@ -542,10 +542,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_regist(int node_rank, size_t size,
                                  MPIDI_XPMEM_PERMIT_VALUE);
         /* 64-bit access permit ID or failure(-1) */
         MPIR_ERR_CHKANDJUMP(segmap->apid == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_get");
-        MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                        (MPL_DBG_FDEST,
-                         "register apid 0x%lx for node_rank %d, segid 0x%lx\n",
-                         (uint64_t) segmap->apid, node_rank, (uint64_t) segmap->remote_segid));
+        XPMEM_TRACE("seg: register apid 0x%lx for node_rank %d, segid 0x%lx\n",
+                    (uint64_t) segmap->apid, node_rank, (uint64_t) segmap->remote_segid);
     }
 
     /* Search a cached segment or create a new one. Both low and size must be page aligned. */
@@ -563,12 +561,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_regist(int node_rank, size_t size,
     /* return mapped vaddr without round down */
     *vaddr = (void *) ((off_t) seg->vaddr + offset_diff + voffset);
     *seg_ptr = seg;
-    MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                    (MPL_DBG_FDEST,
-                     "register segment %p(refcount %d) for node_rank %d, apid 0x%lx, "
-                     "size 0x%lx->0x%lx, seg->low %p->0x%lx, attached_vaddr %p, vaddr %p\n", seg,
-                     MPIR_cc_get(seg->refcount), node_rank, (uint64_t) segmap->apid, size, seg_size,
-                     remote_vaddr, seg->low, seg->vaddr, *vaddr));
+    XPMEM_TRACE("seg: register segment %p(refcount %d) for node_rank %d, apid 0x%lx, "
+                "size 0x%lx->0x%lx, seg->low %p->0x%lx, attached_vaddr %p, vaddr %p\n", seg,
+                MPIR_cc_get(seg->refcount), node_rank, (uint64_t) segmap->apid, size, seg_size,
+                remote_vaddr, seg->low, seg->vaddr, *vaddr);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_SEG_REGIST);
     return mpi_errno;
@@ -584,9 +580,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_deregist(MPIDI_XPMEM_seg_t * seg)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     MPIR_cc_decr(&seg->refcount, &c);
-    MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                    (MPL_DBG_FDEST, "deregister segment %p(refcount %d) vaddr=%p\n", seg,
-                     MPIR_cc_get(seg->refcount), seg->vaddr));
+    XPMEM_TRACE("seg: deregister segment %p(refcount %d) vaddr=%p\n", seg,
+                MPIR_cc_get(seg->refcount), seg->vaddr);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     return mpi_errno;
