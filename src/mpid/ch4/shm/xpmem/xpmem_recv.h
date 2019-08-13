@@ -44,12 +44,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_recv(uint64_t src_offset, ui
                                MPI_BYTE, (char *) MPIDIG_REQUEST(rreq, buffer),
                                MPIDIG_REQUEST(rreq, count), MPIDIG_REQUEST(rreq, datatype));
 
-    MPL_DBG_MSG_FMT(MPIR_DBG_PT2PT, VERBOSE,
-                    (MPL_DBG_FDEST,
-                     "handle_lmt_recv: handle matched rreq %p [source %d, tag %d, context_id 0x%x],"
-                     " copy dst %p, src %p, bytes %ld\n", rreq, MPIDIG_REQUEST(rreq, rank),
-                     MPIDIG_REQUEST(rreq, tag), MPIDIG_REQUEST(rreq, context_id),
-                     (char *) MPIDIG_REQUEST(rreq, buffer), attached_sbuf, recv_data_sz));
+    XPMEM_TRACE("handle_lmt_recv: handle matched rreq %p [source %d, tag %d, context_id 0x%x],"
+                " copy dst %p, src %p, bytes %ld\n", rreq, MPIDIG_REQUEST(rreq, rank),
+                MPIDIG_REQUEST(rreq, tag), MPIDIG_REQUEST(rreq, context_id),
+                (char *) MPIDIG_REQUEST(rreq, buffer), attached_sbuf, recv_data_sz);
 
     mpi_errno = MPIDI_XPMEM_seg_deregist(seg_ptr);
     if (mpi_errno != MPI_SUCCESS)
