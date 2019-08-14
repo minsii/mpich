@@ -108,8 +108,10 @@ int MPIDI_XPMEM_mpi_win_create_hook(MPIR_Win * win)
     /* Skip shared_table initialization if all local processes are zero size. */
     for (i = 0; i < shm_comm_ptr->local_size; i++)
         total_shm_size += shared_table[i].size;
-    if (total_shm_size == 0)
-        goto fn_no_shm;
+    if (total_shm_size == 0) {
+        MPIDIG_WIN(win, shared_table) = NULL;
+        goto fn_fail;
+    }
 
     MPIR_CHKPMEM_MALLOC(xpmem_win->regist_segs, MPIDI_XPMEM_seg_t **,
                         sizeof(MPIDI_XPMEM_seg_t) * shm_comm_ptr->local_size,
@@ -147,10 +149,6 @@ int MPIDI_XPMEM_mpi_win_create_hook(MPIR_Win * win)
     MPIR_CHKLMEM_FREEALL();
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_MPI_WIN_CREATE_HOOK);
     return mpi_errno;
-  fn_no_shm:
-    MPL_free(MPIDIG_WIN(win, shared_table));
-    MPIDIG_WIN(win, shared_table) = NULL;
-    goto fn_exit;
   fn_fail:
     MPIR_CHKPMEM_REAP();
     goto fn_exit;
