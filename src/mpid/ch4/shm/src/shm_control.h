@@ -15,19 +15,6 @@
 #include "shm_types.h"
 #include "../posix/posix_am.h"
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_ctrl_dispatch(int ctrl_id, void *ctrl_hdr)
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    switch (ctrl_id) {
-        default:
-            /* Unknown SHM control header */
-            MPIR_Assert(0);
-    }
-
-    return mpi_errno;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_do_ctrl_send(int rank, MPIR_Comm * comm,
                                                     int ctrl_id, void *ctrl_hdr)
 {
@@ -42,4 +29,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_do_ctrl_send(int rank, MPIR_Comm * comm,
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_DO_CTRL_SEND);
     return ret;
 }
+
+int MPIDI_SHM_ctrl_dispatch(int ctrl_id, void *ctrl_hdr);
+
 #endif /* SHM_CONTROL_H_INCLUDED */

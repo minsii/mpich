@@ -26,6 +26,7 @@ mpi_core_sources   += src/mpid/ch4/shm/src/func_table.c \
                       src/mpid/ch4/shm/src/shm_mem.c \
                       src/mpid/ch4/shm/src/shm_misc.c \
                       src/mpid/ch4/shm/src/shm_rma.c \
+                      src/mpid/ch4/shm/src/shm_control.c \
                       src/mpid/ch4/shm/src/shm_impl.c
 
 if BUILD_TOPOTREES
