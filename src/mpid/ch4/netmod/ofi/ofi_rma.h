@@ -351,6 +351,64 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_allocate_win_request_get_accumulate(MPIR_
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX void MPIDI_CONST_datatype_check_contig_size_lb(MPI_Datatype datatype,
+                                                                        int count, int *contig_p,
+                                                                        size_t * bytes_p,
+                                                                        MPI_Aint * true_lb_p)
+{
+    switch (datatype) {
+        case MPI_CHAR:
+        case MPI_SIGNED_CHAR:
+        case MPI_UNSIGNED_CHAR:
+        case MPI_BYTE:
+            *contig_p = 1;
+            *bytes_p = count * 1;
+            *true_lb_p = 0;
+            break;
+        case MPI_SHORT:
+        case MPI_UNSIGNED_SHORT:
+            *contig_p = 1;
+            *bytes_p = count * 2;
+            *true_lb_p = 0;
+            break;
+        case MPI_INT:
+        case MPI_UNSIGNED:
+            *contig_p = 1;
+            *bytes_p = count * 4;
+            *true_lb_p = 0;
+            break;
+        case MPI_LONG:
+        case MPI_UNSIGNED_LONG:
+            *contig_p = 1;
+            *bytes_p = count * 4;
+            *true_lb_p = 0;
+            break;
+        case MPI_FLOAT:
+            *contig_p = 1;
+            *bytes_p = count * 4;
+            *true_lb_p = 0;
+            break;
+        case MPI_DOUBLE:
+            *contig_p = 1;
+            *bytes_p = count * 8;
+            *true_lb_p = 0;
+            break;
+        case MPI_LONG_DOUBLE:
+            *contig_p = 1;
+            *bytes_p = count * 16;
+            *true_lb_p = 0;
+            break;
+        case MPI_LONG_LONG_INT:
+        case MPI_UNSIGNED_LONG_LONG:
+            *contig_p = 1;
+            *bytes_p = count * 8;
+            *true_lb_p = 0;
+            break;
+        default:
+            MPIDI_Datatype_check_contig_size_lb(datatype, count, *contig_p, *bytes_p, *true_lb_p);
+            break;
+    }
+}
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_OFI_do_put
@@ -389,10 +447,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
     if (unlikely(target_rank == MPI_PROC_NULL))
         goto null_op_exit;
 
-    MPIDI_Datatype_check_contig_size_lb(target_datatype, target_count, target_contig, target_bytes,
-                                        target_true_lb);
-    MPIDI_Datatype_check_contig_size_lb(origin_datatype, origin_count, origin_contig, origin_bytes,
-                                        origin_true_lb);
+    MPIDI_CONST_datatype_check_contig_size_lb(target_datatype, target_count, &target_contig,
+                                              &target_bytes, &target_true_lb);
+    MPIDI_CONST_datatype_check_contig_size_lb(origin_datatype, origin_count, &origin_contig,
+                                              &origin_bytes, &origin_true_lb);
 
     MPIR_ERR_CHKANDJUMP((origin_bytes != target_bytes), mpi_errno, MPI_ERR_SIZE, "**rmasize");
 
