@@ -3,9 +3,9 @@
  *     See COPYRIGHT in top-level directory
  */
 
-#include "xpmem_impl.h"
-#include "xpmem_seg.h"
-#include "xpmem_noinline.h"
+#include "ipc_impl.h"
+#include "ipc_seg.h"
+#include "ipc_noinline.h"
 #include "../posix/posix_noinline.h"
 
 /* Return global node rank of each process in the shared communicator.

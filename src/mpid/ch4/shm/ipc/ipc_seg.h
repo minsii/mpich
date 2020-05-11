@@ -6,8 +6,8 @@
 #ifndef XPMEM_SEG_H_INCLUDED
 #define XPMEM_SEG_H_INCLUDED
 
-#include "xpmem_pre.h"
-#include "xpmem_impl.h"
+#include "ipc_pre.h"
+#include "ipc_impl.h"
 
 /****************************************/
 /* Segment cache internal routines      */

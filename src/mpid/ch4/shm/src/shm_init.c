@@ -7,7 +7,7 @@
 #include "shm_noinline.h"
 #include "../posix/posix_noinline.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../ipc/xpmem_noinline.h"
+#include "../ipc/ipc_noinline.h"
 #endif
 
 int MPIDI_SHMI_mpi_init_hook(int rank, int size, int *tag_bits)

@@ -8,9 +8,9 @@
 
 #include "ch4_impl.h"
 #include "shm_control.h"
-#include "xpmem_pre.h"
-#include "xpmem_seg.h"
-#include "xpmem_impl.h"
+#include "ipc_pre.h"
+#include "ipc_seg.h"
+#include "ipc_impl.h"
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===

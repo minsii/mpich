@@ -17,7 +17,7 @@ typedef struct {
 } MPIDI_XPMEM_Global_t;
 
 /* Variables used to indicate coop copy completion cases.
- *  See more explanation in xpmem_recv.h and xpmem_control.c */
+ *  See more explanation in ipc_recv.h and ipc_control.c */
 typedef enum {
     MPIDI_XPMEM_COPY_ALL,       /* local process copied all chunks */
     MPIDI_XPMEM_COPY_ZERO,      /* local process copied zero chunk */

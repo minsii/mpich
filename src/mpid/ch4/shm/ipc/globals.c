@@ -4,8 +4,8 @@
  */
 
 #include "mpidimpl.h"
-#include "xpmem_pre.h"
-#include "xpmem_impl.h"
+#include "ipc_pre.h"
+#include "ipc_impl.h"
 
 MPIDI_XPMEM_global_t MPIDI_XPMEM_global = { 0 };
 

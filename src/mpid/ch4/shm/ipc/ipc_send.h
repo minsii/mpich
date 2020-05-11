@@ -8,8 +8,8 @@
 
 #include "ch4_impl.h"
 #include "shm_control.h"
-#include "xpmem_pre.h"
-#include "xpmem_impl.h"
+#include "ipc_pre.h"
+#include "ipc_impl.h"
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint count,
                                                    MPI_Datatype datatype, int rank, int tag,

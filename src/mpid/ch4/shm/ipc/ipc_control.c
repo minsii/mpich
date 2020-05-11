@@ -4,10 +4,10 @@
  */
 
 #include "mpidimpl.h"
-#include "xpmem_pre.h"
-#include "xpmem_impl.h"
-#include "xpmem_recv.h"
-#include "xpmem_control.h"
+#include "ipc_pre.h"
+#include "ipc_impl.h"
+#include "ipc_recv.h"
+#include "ipc_control.h"
 
 int MPIDI_XPMEM_ctrl_send_lmt_recv_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
 {
