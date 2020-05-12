@@ -54,15 +54,23 @@ typedef struct MPIDI_SHM_ctrl_xpmem_send_lmt_cnt_free {
 typedef MPIDI_SHM_ctrl_xpmem_send_lmt_send_fin_t MPIDI_SHM_ctrl_xpmem_send_lmt_recv_fin_t;
 #endif
 
-typedef union {
+typedef enum {
+    MPIDI_SHM_CTRL_IPC_TYPE__XPMEM,
+    MPIDI_SHM_CTRL_IPC_TYPE__GPU
+} MPIDI_SHM_ctrl_ipc_type_e;
+
+typedef struct {
+    MPIDI_SHM_ctrl_ipc_type_e ipc_type;
+    union {
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-    MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t xpmem_slmt_rts;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_cts_t xpmem_slmt_cts;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_send_fin_t xpmem_slmt_send_fin;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_recv_fin_t xpmem_slmt_recv_fin;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_cnt_free_t xpmem_slmt_cnt_free;
+        MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t xpmem_slmt_rts;
+        MPIDI_SHM_ctrl_xpmem_send_lmt_cts_t xpmem_slmt_cts;
+        MPIDI_SHM_ctrl_xpmem_send_lmt_send_fin_t xpmem_slmt_send_fin;
+        MPIDI_SHM_ctrl_xpmem_send_lmt_recv_fin_t xpmem_slmt_recv_fin;
+        MPIDI_SHM_ctrl_xpmem_send_lmt_cnt_free_t xpmem_slmt_cnt_free;
 #endif
-    char dummy;                 /* some compilers (suncc) does not like empty struct */
+        char dummy;             /* some compilers (suncc) does not like empty struct */
+    } u;
 } MPIDI_SHM_ctrl_hdr_t;
 
 #endif /* SHM_TYPES_H_INCLUDED */

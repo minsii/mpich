@@ -22,7 +22,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint cou
     MPI_Aint true_lb;
     bool is_contig ATTRIBUTE((unused)) = 0;
     MPIDI_SHM_ctrl_hdr_t ctrl_hdr;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t *slmt_req_hdr = &ctrl_hdr.xpmem_slmt_rts;
+    MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t *slmt_req_hdr = &ctrl_hdr.u.xpmem_slmt_rts;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_LMT_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_LMT_ISEND);

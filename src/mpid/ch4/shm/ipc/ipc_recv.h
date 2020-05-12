@@ -109,7 +109,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_coop_recv(uint64_t src_offse
     size_t data_sz, recv_data_sz;
     int fin_type, copy_type;
     MPIDI_SHM_ctrl_hdr_t ctrl_hdr;
-    MPIDI_SHM_ctrl_xpmem_send_lmt_cts_t *slmt_cts_hdr = &ctrl_hdr.xpmem_slmt_cts;
+    MPIDI_SHM_ctrl_xpmem_send_lmt_cts_t *slmt_cts_hdr = &ctrl_hdr.u.xpmem_slmt_cts;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_HANDLE_LMT_COOP_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_HANDLE_LMT_COOP_RECV);
@@ -198,7 +198,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_coop_recv(uint64_t src_offse
             if (copy_type != MPIDI_XPMEM_COPY_ZERO) {
                 MPIDI_SHM_ctrl_hdr_t ack_ctrl_hdr;
                 MPIDI_SHM_ctrl_xpmem_send_lmt_recv_fin_t *slmt_fin_hdr =
-                    &ack_ctrl_hdr.xpmem_slmt_recv_fin;
+                    &ack_ctrl_hdr.u.xpmem_slmt_recv_fin;
                 slmt_fin_hdr->req_ptr = sreq_ptr;
                 mpi_errno = MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank),
                                                    MPIDIG_context_id_to_comm(MPIDIG_REQUEST
@@ -270,7 +270,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_single_recv(uint64_t src_off
                                MPIDIG_REQUEST(rreq, datatype));
     MPIR_ERR_CHECK(mpi_errno);
 
-    ack_ctrl_hdr.xpmem_slmt_send_fin.req_ptr = sreq_ptr;
+    ack_ctrl_hdr.u.xpmem_slmt_send_fin.req_ptr = sreq_ptr;
     mpi_errno = MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank),
                                        MPIDIG_context_id_to_comm(MPIDIG_REQUEST
                                                                  (rreq, context_id)),
