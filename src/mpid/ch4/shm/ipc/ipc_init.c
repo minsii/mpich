@@ -27,7 +27,7 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *tag_bits)
                                           MPIDI_XPMEM_PERMIT_VALUE);
     /* 64-bit segment ID or failure(-1) */
     MPIR_ERR_CHKANDJUMP(MPIDI_XPMEM_global.segid == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_make");
-    XPMEM_TRACE("init: make segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
+    IPC_TRACE("init: make segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
 
     int num_local = MPIR_Process.local_size;
     MPIDI_XPMEM_global.num_local = num_local;
@@ -108,7 +108,7 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *tag_bits)
     /* While this version of MPICH does require libxpmem to link, we don't necessarily require the
      * kernel module to be loaded at runtime. If XPMEM is not available, disable its use via the
      * special CVAR value. */
-    XPMEM_TRACE("init: xpmem_make failed. Disabling XPMEM support");
+    IPC_TRACE("init: xpmem_make failed. Disabling XPMEM support");
     MPIR_CVAR_CH4_XPMEM_LMT_MSG_SIZE = -1;
 
     MPIR_CHKPMEM_REAP();
@@ -143,8 +143,8 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
         MPIDI_XPMEM_segtree_delete_all(&MPIDI_XPMEM_global.segmaps[i].segcache_ubuf);
         MPIDI_XPMEM_segtree_delete_all(&MPIDI_XPMEM_global.segmaps[i].segcache_cnt);
         if (MPIDI_XPMEM_global.segmaps[i].apid != -1) {
-            XPMEM_TRACE("finalize: release apid: node_rank %d, 0x%lx\n",
-                        i, (uint64_t) MPIDI_XPMEM_global.segmaps[i].apid);
+            IPC_TRACE("finalize: release apid: node_rank %d, 0x%lx\n",
+                      i, (uint64_t) MPIDI_XPMEM_global.segmaps[i].apid);
             ret = xpmem_release(MPIDI_XPMEM_global.segmaps[i].apid);
             /* success(0) or failure(-1) */
             MPIR_ERR_CHKANDJUMP(ret == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_release");
@@ -154,7 +154,7 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
     MPL_free(MPIDI_XPMEM_global.segmaps);
 
     if (MPIDI_XPMEM_global.segid != -1) {
-        XPMEM_TRACE("finalize: remove segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
+        IPC_TRACE("finalize: remove segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
         ret = xpmem_remove(MPIDI_XPMEM_global.segid);
         /* success(0) or failure(-1) */
         MPIR_ERR_CHKANDJUMP(ret == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_remove");

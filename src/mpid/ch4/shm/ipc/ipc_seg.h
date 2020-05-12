@@ -518,8 +518,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_regist(int node_rank, size_t size,
                                  MPIDI_XPMEM_PERMIT_VALUE);
         /* 64-bit access permit ID or failure(-1) */
         MPIR_ERR_CHKANDJUMP(segmap->apid == -1, mpi_errno, MPI_ERR_OTHER, "**xpmem_get");
-        XPMEM_TRACE("seg: register apid 0x%lx for node_rank %d, segid 0x%lx\n",
-                    (uint64_t) segmap->apid, node_rank, (uint64_t) segmap->remote_segid);
+        IPC_TRACE("seg: register apid 0x%lx for node_rank %d, segid 0x%lx\n",
+                  (uint64_t) segmap->apid, node_rank, (uint64_t) segmap->remote_segid);
     }
 
     /* Search a cached segment or create a new one. Both low and size must be page aligned. */
@@ -536,10 +536,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_regist(int node_rank, size_t size,
     /* return mapped vaddr without round down */
     *vaddr = (void *) ((off_t) seg->vaddr + offset_diff + voffset);
     *seg_ptr = seg;
-    XPMEM_TRACE("seg: register segment %p(refcount %d) for node_rank %d, apid 0x%lx, "
-                "size 0x%lx->0x%lx, seg->low %p->0x%lx, attached_vaddr %p, vaddr %p\n", seg,
-                MPIR_Object_get_ref(seg), node_rank, (uint64_t) segmap->apid, size, seg_size,
-                remote_vaddr, seg->low, seg->vaddr, *vaddr);
+    IPC_TRACE("seg: register segment %p(refcount %d) for node_rank %d, apid 0x%lx, "
+              "size 0x%lx->0x%lx, seg->low %p->0x%lx, attached_vaddr %p, vaddr %p\n", seg,
+              MPIR_Object_get_ref(seg), node_rank, (uint64_t) segmap->apid, size, seg_size,
+              remote_vaddr, seg->low, seg->vaddr, *vaddr);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_SEG_REGIST);
     return mpi_errno;
@@ -555,8 +555,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_seg_deregist(MPIDI_XPMEM_seg_t * seg)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     MPIR_Object_release_ref(seg, &c);
-    XPMEM_TRACE("seg: deregister segment %p(refcount %d) vaddr=%p\n", seg,
-                MPIR_Object_get_ref(seg), seg->vaddr);
+    IPC_TRACE("seg: deregister segment %p(refcount %d) vaddr=%p\n", seg,
+              MPIR_Object_get_ref(seg), seg->vaddr);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_SEG_DEREGIST);
     return mpi_errno;

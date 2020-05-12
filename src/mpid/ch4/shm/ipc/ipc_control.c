@@ -17,7 +17,7 @@ int MPIDI_XPMEM_ctrl_send_lmt_recv_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
 
-    XPMEM_TRACE("send_lmt_recv_fin_cb: complete sreq %p\n", sreq);
+    IPC_TRACE("send_lmt_recv_fin_cb: complete sreq %p\n", sreq);
     MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(sreq, datatype));
     MPID_Request_complete(sreq);
 
@@ -36,7 +36,7 @@ int MPIDI_XPMEM_ctrl_send_lmt_send_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
 
-    XPMEM_TRACE("send_lmt_send_fin_cb: complete rreq %p\n", rreq);
+    IPC_TRACE("send_lmt_send_fin_cb: complete rreq %p\n", rreq);
 
     /* send_fin_cb can only be triggered in cooperative copy, so
      * MPIDI_XPMEM_REQUEST(rreq, counter_ptr) must be set by receiver */
@@ -60,11 +60,11 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RTS_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RTS_CB);
 
-    XPMEM_TRACE("send_lmt_rts_cb: received src_offset 0x%lx, data_sz 0x%lx, sreq_ptr 0x%lx, "
-                "src_lrank %d, match info[src_rank %d, tag %d, context_id 0x%x]\n",
-                slmt_rts_hdr->src_offset, slmt_rts_hdr->data_sz, slmt_rts_hdr->sreq_ptr,
-                slmt_rts_hdr->src_lrank, slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
-                slmt_rts_hdr->context_id);
+    IPC_TRACE("send_lmt_rts_cb: received src_offset 0x%lx, data_sz 0x%lx, sreq_ptr 0x%lx, "
+              "src_lrank %d, match info[src_rank %d, tag %d, context_id 0x%x]\n",
+              slmt_rts_hdr->src_offset, slmt_rts_hdr->data_sz, slmt_rts_hdr->sreq_ptr,
+              slmt_rts_hdr->src_lrank, slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
+              slmt_rts_hdr->context_id);
 
     /* Try to match a posted receive request.
      * root_comm cannot be NULL if a posted receive request exists, because
@@ -134,7 +134,7 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
                                  MPIDIG_context_id_to_uelist(MPIDIG_REQUEST(rreq, context_id)));
         }
 
-        XPMEM_TRACE("send_lmt_rts_cb: enqueue unexpected, rreq=%p\n", rreq);
+        IPC_TRACE("send_lmt_rts_cb: enqueue unexpected, rreq=%p\n", rreq);
     }
 
   fn_exit:
