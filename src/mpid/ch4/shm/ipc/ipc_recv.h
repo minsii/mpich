@@ -148,13 +148,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_coop_recv(uint64_t src_offse
     XPMEM_TRACE("handle_lmt_coop_recv: shm ctrl_id %d, buf_offset 0x%lx, data_sz 0x%lx, "
                 "sreq_ptr 0x%lx, rreq_ptr 0x%lx, coop_counter_offset 0x%lx, "
                 " local_rank %d, dest %d\n",
-                MPIDI_SHM_XPMEM_SEND_LMT_CTS, slmt_cts_hdr->dest_offset, slmt_cts_hdr->data_sz,
+                MPIDI_SHM_IPC_SEND_LMT_CTS, slmt_cts_hdr->dest_offset, slmt_cts_hdr->data_sz,
                 slmt_cts_hdr->sreq_ptr, slmt_cts_hdr->rreq_ptr, slmt_cts_hdr->coop_counter_offset,
                 slmt_cts_hdr->dest_lrank, MPIDIG_REQUEST(rreq, rank));
 
     /* Receiver sends CTS packet to sender */
     mpi_errno =
-        MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank), comm, MPIDI_SHM_XPMEM_SEND_LMT_CTS,
+        MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank), comm, MPIDI_SHM_IPC_SEND_LMT_CTS,
                                &ctrl_hdr);
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -203,8 +203,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_coop_recv(uint64_t src_offse
                 mpi_errno = MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank),
                                                    MPIDIG_context_id_to_comm(MPIDIG_REQUEST
                                                                              (rreq, context_id)),
-                                                   MPIDI_SHM_XPMEM_SEND_LMT_RECV_FIN,
-                                                   &ack_ctrl_hdr);
+                                                   MPIDI_SHM_IPC_SEND_LMT_RECV_FIN, &ack_ctrl_hdr);
                 MPIR_ERR_CHECK(mpi_errno);
             }
             MPIR_Handle_obj_free(&MPIDI_XPMEM_cnt_mem, MPIDI_XPMEM_REQUEST(rreq, counter_ptr));
@@ -274,7 +273,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_single_recv(uint64_t src_off
     mpi_errno = MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(rreq, rank),
                                        MPIDIG_context_id_to_comm(MPIDIG_REQUEST
                                                                  (rreq, context_id)),
-                                       MPIDI_SHM_XPMEM_SEND_LMT_RECV_FIN, &ack_ctrl_hdr);
+                                       MPIDI_SHM_IPC_SEND_LMT_RECV_FIN, &ack_ctrl_hdr);
     MPIR_ERR_CHECK(mpi_errno);
 
     MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(rreq, datatype));

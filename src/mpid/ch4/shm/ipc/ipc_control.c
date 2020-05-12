@@ -220,10 +220,10 @@ int MPIDI_XPMEM_ctrl_send_lmt_cts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
                     slmt_cts_hdr->coop_counter_direct_flag;
                 ack_ctrl_hdr.u.xpmem_slmt_cnt_free.coop_counter_offset =
                     slmt_cts_hdr->coop_counter_offset;
-                ctrl_id = MPIDI_SHM_XPMEM_SEND_LMT_CNT_FREE;
+                ctrl_id = MPIDI_SHM_IPC_SEND_LMT_CNT_FREE;
             } else {
                 ack_ctrl_hdr.u.xpmem_slmt_send_fin.req_ptr = slmt_cts_hdr->rreq_ptr;
-                ctrl_id = MPIDI_SHM_XPMEM_SEND_LMT_SEND_FIN;
+                ctrl_id = MPIDI_SHM_IPC_SEND_LMT_SEND_FIN;
             }
 
             mpi_errno = MPIDI_SHM_do_ctrl_send(MPIDIG_REQUEST(sreq, rank),
