@@ -19,15 +19,15 @@ typedef struct {
 /* Variables used to indicate coop copy completion cases.
  *  See more explanation in ipc_recv.h and ipc_control.c */
 typedef enum {
-    MPIDI_XPMEM_COPY_ALL,       /* local process copied all chunks */
-    MPIDI_XPMEM_COPY_ZERO,      /* local process copied zero chunk */
-    MPIDI_XPMEM_COPY_MIX        /* both sides copied a part of chunks */
-} MPIDI_XPMEM_copy_type_t;
+    MPIDI_IPC_COPY_ALL,         /* local process copied all chunks */
+    MPIDI_IPC_COPY_ZERO,        /* local process copied zero chunk */
+    MPIDI_IPC_COPY_MIX          /* both sides copied a part of chunks */
+} MPIDI_IPC_copy_type_t;
 
 typedef enum {
-    MPIDI_XPMEM_LOCAL_FIN,      /* local copy is done but the other side may be still copying */
-    MPIDI_XPMEM_BOTH_FIN        /* both sides finished copy */
-} MPIDI_XPMEM_fin_type_t;
+    MPIDI_IPC_LOCAL_FIN,        /* local copy is done but the other side may be still copying */
+    MPIDI_IPC_BOTH_FIN          /* both sides finished copy */
+} MPIDI_IPC_fin_type_t;
 
 typedef struct MPIDI_XPMEM_seg {
     MPIR_OBJECT_HEADER;

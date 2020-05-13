@@ -209,13 +209,13 @@ int MPIDI_XPMEM_ctrl_send_lmt_cts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
      *                                    finishes cooperative copy
      *        case fin_type == MIXED_COPIED: sends SEND_FIN to receiver and complete sreq;
      *                                       receiver is waiting SEND_FIN to complete rreq */
-    if ((fin_type == MPIDI_XPMEM_LOCAL_FIN && copy_type == MPIDI_XPMEM_COPY_ALL) ||
-        fin_type == MPIDI_XPMEM_BOTH_FIN) {
-        if (fin_type == MPIDI_XPMEM_BOTH_FIN) {
+    if ((fin_type == MPIDI_IPC_LOCAL_FIN && copy_type == MPIDI_IPC_COPY_ALL) ||
+        fin_type == MPIDI_IPC_BOTH_FIN) {
+        if (fin_type == MPIDI_IPC_BOTH_FIN) {
             int ctrl_id;
             MPIDI_SHM_ctrl_hdr_t ack_ctrl_hdr;
 
-            if (copy_type == MPIDI_XPMEM_COPY_ZERO) {
+            if (copy_type == MPIDI_IPC_COPY_ZERO) {
                 ack_ctrl_hdr.u.xpmem_slmt_cnt_free.coop_counter_direct_flag =
                     slmt_cts_hdr->coop_counter_direct_flag;
                 ack_ctrl_hdr.u.xpmem_slmt_cnt_free.coop_counter_offset =
