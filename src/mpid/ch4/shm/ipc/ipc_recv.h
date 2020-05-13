@@ -78,16 +78,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_do_lmt_coop_copy(const void *src_buf,
     }
 
     if (cur_chunk == total_chunk)
-        *fin_type = MPIDI_IPC_LOCAL_FIN;      /* copy is only locally complete */
+        *fin_type = MPIDI_IPC_LOCAL_FIN;        /* copy is only locally complete */
     else
-        *fin_type = MPIDI_IPC_BOTH_FIN;       /* copy is done by both sides */
+        *fin_type = MPIDI_IPC_BOTH_FIN; /* copy is done by both sides */
 
     if (num_local_copy == total_chunk)
-        *copy_type = MPIDI_IPC_COPY_ALL;      /* the process copies all chunks */
+        *copy_type = MPIDI_IPC_COPY_ALL;        /* the process copies all chunks */
     else if (num_local_copy == 0)
-        *copy_type = MPIDI_IPC_COPY_ZERO;     /* the process copies zero chunk */
+        *copy_type = MPIDI_IPC_COPY_ZERO;       /* the process copies zero chunk */
     else
-        *copy_type = MPIDI_IPC_COPY_MIX;      /* both processes copy a part of chunks */
+        *copy_type = MPIDI_IPC_COPY_MIX;        /* both processes copy a part of chunks */
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_DO_LMT_COOP_COPY);
