@@ -30,8 +30,6 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *tag_bits)
     IPC_TRACE("init: make segid: 0x%lx\n", (uint64_t) MPIDI_XPMEM_global.segid);
 
     int num_local = MPIR_Process.local_size;
-    MPIDI_XPMEM_global.num_local = num_local;
-    MPIDI_XPMEM_global.local_rank = MPIR_Process.local_rank;
     MPIDI_XPMEM_global.node_group_ptr = NULL;
 
     MPIDU_Init_shm_put(&MPIDI_XPMEM_global.segid, sizeof(xpmem_segid_t));
@@ -84,7 +82,7 @@ int MPIDI_XPMEM_mpi_init_hook(int rank, int size, int *tag_bits)
         /* Init AVL tree based segment cache */
         MPIDI_XPMEM_segtree_init(&MPIDI_XPMEM_global.segmaps[i].segcache_ubuf); /* Initialize user buffer tree */
         MPIDI_XPMEM_segtree_init(&MPIDI_XPMEM_global.segmaps[i].segcache_cnt);
-        if (i != MPIDI_XPMEM_global.local_rank) {
+        if (i != MPIR_Process.local_rank) {
             MPIDU_Init_shm_get(i, sizeof(uint64_t), &remote_cnt_mem_addr);
             mpi_errno =
                 MPIDI_XPMEM_seg_regist(i, sizeof(MPIDI_XPMEM_cnt_t) * MPIDI_XPMEM_CNT_PREALLOC,
@@ -119,6 +117,7 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, ret = 0;
+    int num_local = MPIR_Process.local_size;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_MPI_FINALIZE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_MPI_FINALIZE_HOOK);
 
@@ -130,14 +129,14 @@ int MPIDI_XPMEM_mpi_finalize_hook(void)
     }
 
     /* Free pre-attached direct coop counter */
-    for (i = 0; i < MPIDI_XPMEM_global.num_local; ++i) {
-        if (i != MPIDI_XPMEM_global.local_rank)
+    for (i = 0; i < num_local; ++i) {
+        if (i != MPIR_Process.local_rank)
             MPIDI_XPMEM_seg_deregist(MPIDI_XPMEM_global.coop_counter_seg_direct[i]);
     }
     MPL_free(MPIDI_XPMEM_global.coop_counter_direct);
     MPL_free(MPIDI_XPMEM_global.coop_counter_seg_direct);
 
-    for (i = 0; i < MPIDI_XPMEM_global.num_local; i++) {
+    for (i = 0; i < num_local; i++) {
         /* should be called before xpmem_release
          * MPIDI_XPMEM_segtree_tree_delete_all will call xpmem_detach */
         MPIDI_XPMEM_segtree_delete_all(&MPIDI_XPMEM_global.segmaps[i].segcache_ubuf);

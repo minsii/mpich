@@ -65,8 +65,6 @@ typedef struct {
 } MPIDI_XPMEM_segmap_t;
 
 typedef struct {
-    int num_local;
-    int local_rank;
     MPIR_Group *node_group_ptr; /* cache node group, used at win_create. */
     xpmem_segid_t segid;        /* my local segid associated with entire address space */
     MPIDI_XPMEM_segmap_t *segmaps;      /* remote seg info for every local processes. */

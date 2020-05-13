@@ -125,7 +125,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_handle_lmt_coop_recv(uint64_t src_offse
     /* XPMEM internal info */
     slmt_cts_hdr->dest_offset = (uint64_t) MPIDIG_REQUEST(rreq, buffer) + dt_true_lb;
     slmt_cts_hdr->data_sz = recv_data_sz;
-    slmt_cts_hdr->dest_lrank = MPIDI_XPMEM_global.local_rank;
+    slmt_cts_hdr->dest_lrank = MPIR_Process.local_rank;
 
     /* Receiver replies CTS packet */
     slmt_cts_hdr->sreq_ptr = sreq_ptr;

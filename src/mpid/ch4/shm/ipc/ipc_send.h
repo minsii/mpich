@@ -46,7 +46,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint cou
     slmt_req_hdr->src_offset = (uint64_t) buf + true_lb;
     slmt_req_hdr->data_sz = data_sz;
     slmt_req_hdr->sreq_ptr = (uint64_t) sreq;
-    slmt_req_hdr->src_lrank = MPIDI_XPMEM_global.local_rank;
+    slmt_req_hdr->src_lrank = MPIR_Process.local_rank;
 
     /* message matching info */
     slmt_req_hdr->src_rank = comm->rank;
