@@ -120,10 +120,10 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
         MPIDI_REQUEST(rreq, is_local) = 1;
 
         /* store XPMEM internal info */
-        MPIDI_XPMEM_REQUEST(rreq, unexp_rreq).src_offset = slmt_rts_hdr->src_offset;
-        MPIDI_XPMEM_REQUEST(rreq, unexp_rreq).data_sz = slmt_rts_hdr->data_sz;
-        MPIDI_XPMEM_REQUEST(rreq, unexp_rreq).sreq_ptr = slmt_rts_hdr->sreq_ptr;
-        MPIDI_XPMEM_REQUEST(rreq, unexp_rreq).src_lrank = slmt_rts_hdr->src_lrank;
+        MPIDI_IPC_REQUEST(rreq, unexp_rreq).src_offset = slmt_rts_hdr->src_offset;
+        MPIDI_IPC_REQUEST(rreq, unexp_rreq).data_sz = slmt_rts_hdr->data_sz;
+        MPIDI_IPC_REQUEST(rreq, unexp_rreq).sreq_ptr = slmt_rts_hdr->sreq_ptr;
+        MPIDI_IPC_REQUEST(rreq, unexp_rreq).src_lrank = slmt_rts_hdr->src_lrank;
         MPIDI_SHM_REQUEST(rreq, status) |= MPIDI_SHM_REQ_XPMEM_SEND_LMT;
 
         if (root_comm) {

@@ -85,12 +85,18 @@ typedef struct {
     uint64_t data_sz;
     uint64_t sreq_ptr;
     int src_lrank;
-} MPIDI_XPMEM_am_unexp_rreq_t;
+} MPIDI_IPC_am_unexp_rreq_t;
 
 typedef struct {
-    MPIDI_XPMEM_am_unexp_rreq_t unexp_rreq;
     MPIDI_XPMEM_cnt_t *counter_ptr;
 } MPIDI_XPMEM_am_request_t;
+
+typedef struct {
+    MPIDI_IPC_am_unexp_rreq_t unexp_rreq;
+    union {
+        MPIDI_XPMEM_am_request_t xpmem;
+    } u;
+} MPIDI_IPC_am_request_t;
 
 extern MPIDI_XPMEM_global_t MPIDI_XPMEM_global;
 extern MPIR_Object_alloc_t MPIDI_XPMEM_seg_mem;
@@ -104,6 +110,7 @@ extern MPL_dbg_class MPIDI_CH4_SHM_XPMEM_GENERAL;
 #define IPC_TRACE(...) \
     MPL_DBG_MSG_FMT(MPIDI_CH4_SHM_IPC_GENERAL,VERBOSE,(MPL_DBG_FDEST, "IPC "__VA_ARGS__))
 
-#define MPIDI_XPMEM_REQUEST(req, field)      ((req)->dev.ch4.am.shm_am.xpmem.field)
+#define MPIDI_IPC_REQUEST(req, field)      ((req)->dev.ch4.am.shm_am.ipc.field)
+#define MPIDI_XPMEM_REQUEST(req, field)    ((req)->dev.ch4.am.shm_am.ipc.u.xpmem.field)
 
 #endif /* XPMEM_PRE_H_INCLUDED */

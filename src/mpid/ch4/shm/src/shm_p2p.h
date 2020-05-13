@@ -74,7 +74,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mmods_try_matched_recv(void *buf,
         MPIDIG_REQUEST(message, buffer) = (char *) buf;
         MPIDIG_REQUEST(message, count) = count;
 
-        MPIDI_XPMEM_am_unexp_rreq_t *unexp_rreq = &MPIDI_XPMEM_REQUEST(message, unexp_rreq);
+        MPIDI_IPC_am_unexp_rreq_t *unexp_rreq = &MPIDI_IPC_REQUEST(message, unexp_rreq);
         mpi_errno = MPIDI_XPMEM_handle_lmt_recv(unexp_rreq->src_offset,
                                                 unexp_rreq->data_sz, unexp_rreq->sreq_ptr,
                                                 unexp_rreq->src_lrank, root_comm, message);

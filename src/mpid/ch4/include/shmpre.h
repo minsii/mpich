@@ -15,7 +15,7 @@
 
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
 #define MPIDI_SHM_XPMEM_WIN_DECL MPIDI_XPMEM_win_t xpmem;
-#define MPIDI_SHM_XPMEM_REQUEST_AM_DECL MPIDI_XPMEM_am_request_t xpmem;
+#define MPIDI_SHM_IPC_REQUEST_AM_DECL MPIDI_IPC_am_request_t ipc;
 #else
 #define MPIDI_SHM_XPMEM_WIN_DECL
 #define MPIDI_SHM_XPMEM_REQUEST_AM_DECL
@@ -23,7 +23,7 @@
 
 #define MPIDI_SHM_REQUEST_AM_DECL    uint64_t status;                   \
                                      MPIDI_POSIX_am_request_t posix;    \
-                                     MPIDI_SHM_XPMEM_REQUEST_AM_DECL
+                                     MPIDI_SHM_IPC_REQUEST_AM_DECL
 #define MPIDI_SHM_REQUEST_DECL       MPIDI_POSIX_request_t posix;
 #define MPIDI_SHM_COMM_DECL          MPIDI_POSIX_comm_t posix;
 #define MPIDI_SHM_WIN_DECL           MPIDI_POSIX_win_t posix;   \
