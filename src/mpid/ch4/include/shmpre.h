@@ -18,7 +18,7 @@
 #define MPIDI_SHM_IPC_REQUEST_AM_DECL MPIDI_IPC_am_request_t ipc;
 #else
 #define MPIDI_SHM_XPMEM_WIN_DECL
-#define MPIDI_SHM_XPMEM_REQUEST_AM_DECL
+#define MPIDI_SHM_IPC_REQUEST_AM_DECL
 #endif
 
 #define MPIDI_SHM_REQUEST_AM_DECL    uint64_t status;                   \
