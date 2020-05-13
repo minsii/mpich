@@ -3,18 +3,18 @@
  *     See COPYRIGHT in top-level directory
  */
 
-#ifndef XPMEM_SEND_H_INCLUDED
-#define XPMEM_SEND_H_INCLUDED
+#ifndef IPC_SEND_H_INCLUDED
+#define IPC_SEND_H_INCLUDED
 
 #include "ch4_impl.h"
 #include "shm_control.h"
 #include "ipc_pre.h"
 #include "ipc_impl.h"
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint count,
-                                                   MPI_Datatype datatype, int rank, int tag,
-                                                   MPIR_Comm * comm, int context_offset,
-                                                   MPIDI_av_entry_t * addr, MPIR_Request ** request)
+MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_lmt_isend(const void *buf, MPI_Aint count,
+                                                 MPI_Datatype datatype, int rank, int tag,
+                                                 MPIR_Comm * comm, int context_offset,
+                                                 MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq = NULL;
@@ -24,8 +24,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint cou
     MPIDI_SHM_ctrl_hdr_t ctrl_hdr;
     MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t *slmt_req_hdr = &ctrl_hdr.u.xpmem_slmt_rts;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_LMT_ISEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_LMT_ISEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_LMT_ISEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_LMT_ISEND);
 
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
     sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2);
@@ -63,10 +63,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint cou
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_LMT_ISEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_LMT_ISEND);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
 }
 
-#endif /* XPMEM_SEND_H_INCLUDED */
+#endif /* IPC_SEND_H_INCLUDED */
