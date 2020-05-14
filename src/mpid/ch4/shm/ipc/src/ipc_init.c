@@ -5,7 +5,9 @@
 
 #include "ipc_impl.h"
 #include "ipc_noinline.h"
-#include "mpidu_init_shm.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "xpmem/xpmem_noinline.h"
+#endif
 
 int MPIDI_IPC_mpi_init_hook(int rank, int size, int *tag_bits)
 {
