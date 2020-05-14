@@ -10,6 +10,9 @@
 #include "shm_control.h"
 #include "ipc_pre.h"
 #include "ipc_impl.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "xpmem/xpmem_send.h"
+#endif
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
