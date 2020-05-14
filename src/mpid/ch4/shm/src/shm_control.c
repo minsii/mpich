@@ -5,9 +5,7 @@
 
 #include "mpidimpl.h"
 #include "shm_control.h"
-#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
 #include "../ipc/src/ipc_control.h"
-#endif
 
 int MPIDI_SHM_ctrl_dispatch(int ctrl_id, void *ctrl_hdr)
 {
