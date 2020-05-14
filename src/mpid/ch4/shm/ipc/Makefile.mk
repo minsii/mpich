@@ -19,4 +19,6 @@ mpi_core_sources += src/mpid/ch4/shm/ipc/globals.c     \
                     src/mpid/ch4/shm/ipc/ipc_control.c \
                     src/mpid/ch4/shm/ipc/ipc_win.c
 
+include $(top_srcdir)/src/mpid/ch4/shm/ipc/xpmem/Makefile.mk
+
 endif
