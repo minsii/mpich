@@ -20,15 +20,15 @@
  * corresponding handling routine. If the request is handled by a shmmod,
  * recvd_flag is set to true. The caller should call fallback if no shmmod
  * handles it. */
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mmods_try_matched_recv(void *buf,
+MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mmods_try_matched_recv(void *buf,
                                                               MPI_Aint count,
                                                               MPI_Datatype datatype,
                                                               MPIR_Request * message,
                                                               bool * recvd_flag)
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_MMODS_TRY_MATCHED_RECV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_MMODS_TRY_MATCHED_RECV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MMODS_TRY_MATCHED_RECV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MMODS_TRY_MATCHED_RECV);
 
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     /* XPMEM special receive */
@@ -42,9 +42,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mmods_try_matched_recv(void *buf,
         MPIDIG_REQUEST(message, count) = count;
 
         MPIDI_IPC_am_unexp_rreq_t *unexp_rreq = &MPIDI_IPC_REQUEST(message, unexp_rreq);
-        mpi_errno = MPIDI_XPMEM_handle_lmt_recv(unexp_rreq->src_offset,
-                                                unexp_rreq->data_sz, unexp_rreq->sreq_ptr,
-                                                unexp_rreq->src_lrank, root_comm, message);
+        mpi_errno = MPIDI_IPC_xpmem_handle_lmt_recv(unexp_rreq->src_offset,
+                                                    unexp_rreq->data_sz, unexp_rreq->sreq_ptr,
+                                                    unexp_rreq->src_lrank, root_comm, message);
         MPIR_ERR_CHECK(mpi_errno);
 
         *recvd_flag = true;
@@ -54,7 +54,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mmods_try_matched_recv(void *buf,
     goto fn_exit;
   fn_exit:
 #endif /* MPIDI_CH4_SHM_ENABLE_XPMEM */
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_MMODS_TRY_MATCHED_RECV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MMODS_TRY_MATCHED_RECV);
     return mpi_errno;
 }
 #endif /* end of (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS) */
@@ -134,7 +134,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_imrecv(void *buf, MPI_Aint count, MPI
     bool recvd_flag = false;
 
     /* Try shmmod specific matched receive */
-    mpi_errno = MPIDI_SHM_mmods_try_matched_recv(buf, count, datatype, message, &recvd_flag);
+    mpi_errno = MPIDI_IPC_mmods_try_matched_recv(buf, count, datatype, message, &recvd_flag);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* If not received, then fallback to POSIX matched receive */
