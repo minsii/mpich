@@ -4,7 +4,6 @@
  */
 
 #include "ipc_impl.h"
-#include "ipc_seg.h"
 #include "ipc_noinline.h"
 #include "../posix/posix_noinline.h"
 

@@ -6,7 +6,6 @@
 noinst_HEADERS += src/mpid/ch4/shm/ipc/src/shm_inline.h    \
                   src/mpid/ch4/shm/ipc/src/ipc_noinline.h  \
                   src/mpid/ch4/shm/ipc/src/ipc_impl.h      \
-                  src/mpid/ch4/shm/ipc/src/ipc_seg.h       \
                   src/mpid/ch4/shm/ipc/src/ipc_send.h      \
                   src/mpid/ch4/shm/ipc/src/ipc_recv.h      \
                   src/mpid/ch4/shm/ipc/src/ipc_control.h   \

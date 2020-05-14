@@ -6,7 +6,6 @@
 #include "ipc_impl.h"
 #include "ipc_noinline.h"
 #include "mpidu_init_shm.h"
-#include "ipc_seg.h"
 
 int MPIDI_IPC_mpi_init_hook(int rank, int size, int *tag_bits)
 {
