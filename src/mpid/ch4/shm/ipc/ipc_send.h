@@ -46,6 +46,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_lmt_isend(const void *buf, MPI_Aint count
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     if (attr.type != MPL_GPU_POINTER_DEV) {
         /* XPMEM internal info */
+        ctrl_hdr.ipc_type = MPIDI_SHM_CTRL_IPC_TYPE__XPMEM;
         MPIDI_SHM_ctrl_xpmem_send_lmt_rts_t *slmt_req_hdr = &ctrl_hdr.u.xpmem_slmt_rts;
         slmt_req_hdr->src_offset = (uint64_t) buf + true_lb;
         slmt_req_hdr->data_sz = data_sz;
