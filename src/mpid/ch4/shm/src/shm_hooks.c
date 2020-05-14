@@ -7,7 +7,7 @@
 #include "shm_noinline.h"
 #include "../posix/posix_noinline.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../ipc/ipc_noinline.h"
+#include "../ipc/src/ipc_noinline.h"
 #endif
 
 int MPIDI_SHMI_mpi_comm_commit_pre_hook(MPIR_Comm * comm)

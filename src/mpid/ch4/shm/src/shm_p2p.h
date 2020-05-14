@@ -33,7 +33,7 @@ cvars:
 
 #include <shm.h>
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../ipc/shm_inline.h"
+#include "../ipc/src/shm_inline.h"
 #endif
 #include "../posix/shm_inline.h"
 

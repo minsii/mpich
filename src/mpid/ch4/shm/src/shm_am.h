@@ -15,7 +15,7 @@
 #include <shm.h>
 #include "../posix/shm_inline.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../ipc/shm_inline.h"
+#include "../ipc/src/shm_inline.h"
 #endif
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_send_hdr(int rank, MPIR_Comm * comm,

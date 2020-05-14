@@ -10,7 +10,7 @@
 
 #include "../posix/posix_pre.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "../ipc/ipc_pre.h"
+#include "../ipc/src/ipc_pre.h"
 #endif
 
 typedef struct {
