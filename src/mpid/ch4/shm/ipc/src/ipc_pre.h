@@ -14,7 +14,7 @@
 
 typedef struct {
     int dummy;
-} MPIDI_XPMEM_Global_t;
+} MPIDI_IPC_Global_t;
 
 /* Variables used to indicate coop copy completion cases.
  *  See more explanation in ipc_recv.h and ipc_control.c */
