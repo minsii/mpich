@@ -3,8 +3,6 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-if BUILD_SHM_XPMEM
-
 noinst_HEADERS += src/mpid/ch4/shm/ipc/shm_inline.h    \
                   src/mpid/ch4/shm/ipc/ipc_noinline.h  \
                   src/mpid/ch4/shm/ipc/ipc_impl.h      \
@@ -21,4 +19,3 @@ mpi_core_sources += src/mpid/ch4/shm/ipc/globals.c     \
 
 include $(top_srcdir)/src/mpid/ch4/shm/ipc/xpmem/Makefile.mk
 
-endif
