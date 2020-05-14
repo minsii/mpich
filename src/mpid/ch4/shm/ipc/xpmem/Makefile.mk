@@ -3,7 +3,7 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-if BUILD_SHM_XPMEM
+if BUILD_SHM_IPC_XPMEM
 
 noinst_HEADERS += src/mpid/ch4/shm/xpmem/shm_inline.h      \
                   src/mpid/ch4/shm/xpmem/xpmem_noinline.h  \
