@@ -10,10 +10,6 @@
 #include "../xpmem/xpmem_pre.h"
 #endif
 
-typedef struct {
-    int dummy;
-} MPIDI_IPC_Global_t;
-
 typedef enum {
     MPIDI_SHM_IPC_TYPE__XPMEM,
 } MPIDI_SHM_IPC_type_t;
