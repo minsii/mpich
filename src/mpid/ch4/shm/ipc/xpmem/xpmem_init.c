@@ -19,7 +19,7 @@ int MPIDI_IPC_xpmem_mpi_init_hook(int rank, int size, int *tag_bits)
     MPIR_CHKPMEM_DECL(3);
 
 #ifdef MPL_USE_DBG_LOGGING
-    MPIDI_CH4_SHM_IPC_XPMEM_GENERAL = MPL_dbg_class_alloc("SHM_XPMEM", "shm_xpmem");
+    MPIDI_CH4_SHM_IPC_XPMEM_GENERAL = MPL_dbg_class_alloc("SHM_IPC_XPMEM", "shm_ipc_xpmem");
 #endif /* MPL_USE_DBG_LOGGING */
 
     /* Try to share entire address space */

@@ -105,6 +105,6 @@ extern MPL_dbg_class MPIDI_CH4_SHM_IPC_XPMEM_GENERAL;
 #define XPMEM_TRACE(...) \
     MPL_DBG_MSG_FMT(MPIDI_CH4_SHM_IPC_XPMEM_GENERAL,VERBOSE,(MPL_DBG_FDEST, "XPMEM "__VA_ARGS__))
 
-#define MPIDI_IPC_XPMEM_REQUEST(req, field)      ((req)->dev.ch4.am.shm_am.xpmem.field)
+#define MPIDI_IPC_XPMEM_REQUEST(req, field)      ((req)->dev.ch4.am.shm_am.ipc.u.xpmem.field)
 
 #endif /* XPMEM_PRE_H_INCLUDED */

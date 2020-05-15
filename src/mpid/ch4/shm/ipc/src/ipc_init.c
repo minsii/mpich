@@ -15,6 +15,10 @@ int MPIDI_IPC_mpi_init_hook(int rank, int size, int *tag_bits)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_INIT_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_INIT_HOOK);
 
+#ifdef MPL_USE_DBG_LOGGING
+    MPIDI_CH4_SHM_IPC_GENERAL = MPL_dbg_class_alloc("SHM_IPC", "shm_ipc");
+#endif
+
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     if (MPIR_CVAR_CH4_XPMEM_LMT_MSG_SIZE != -1) {
         mpi_errno = MPIDI_IPC_xpmem_mpi_init_hook(rank, size, tag_bits);
