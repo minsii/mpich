@@ -11,7 +11,7 @@
 #include "ipc_pre.h"
 #include "ipc_impl.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "xpmem/xpmem_recv.h"
+#include "../xpmem/xpmem_recv.h"
 #endif
 
 #if (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS)
@@ -41,7 +41,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mmods_try_matched_recv(void *buf,
         MPIDIG_REQUEST(message, buffer) = (char *) buf;
         MPIDIG_REQUEST(message, count) = count;
 
-        MPIDI_IPC_am_unexp_rreq_t *unexp_rreq = &MPIDI_IPC_REQUEST(message, unexp_rreq);
+        MPIDI_IPC_xpmem_am_unexp_rreq_t *unexp_rreq = &MPIDI_IPC_XPMEM_REQUEST(message, unexp_rreq);
         mpi_errno = MPIDI_IPC_xpmem_handle_lmt_recv(unexp_rreq->src_offset,
                                                     unexp_rreq->data_sz, unexp_rreq->sreq_ptr,
                                                     unexp_rreq->src_lrank, root_comm, message);

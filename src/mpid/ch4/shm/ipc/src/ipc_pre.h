@@ -14,6 +14,10 @@ typedef struct {
     int dummy;
 } MPIDI_IPC_Global_t;
 
+typedef enum {
+    MPIDI_SHM_IPC_TYPE__XPMEM,
+} MPIDI_SHM_IPC_type_t;
+
 typedef union {
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     MPIDI_IPC_xpmem_win_t xpmem;
@@ -21,19 +25,10 @@ typedef union {
 } MPIDI_IPC_win_t;
 
 typedef struct {
+    MPIDI_SHM_IPC_type_t ipc_type;
     union {
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-        MPIDI_IPC_xpmem_am_unexp_rreq_t xpmem;
-#endif
-    } u;
-    uint64_t sreq_ptr;
-} MPIDI_IPC_am_unexp_rreq_t;
-
-typedef struct {
-    MPIDI_IPC_am_unexp_rreq_t unexp_rreq;
-    union {
-#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-        MPIDI_XPMEM_am_request_t xpmem;
+        MPIDI_IPC_xpmem_am_request_t xpmem;
 #endif
     } u;
 } MPIDI_IPC_am_request_t;

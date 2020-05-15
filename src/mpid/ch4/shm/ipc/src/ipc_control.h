@@ -7,11 +7,11 @@
 #define IPC_CONTROL_H_INCLUDED
 
 #include "shm_types.h"
+#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#include "../xpmem/xpmem_control.h"
+#endif
 
-int MPIDI_IPC_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
-int MPIDI_IPC_ctrl_send_lmt_cts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
-int MPIDI_IPC_ctrl_send_lmt_send_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
-int MPIDI_IPC_ctrl_send_lmt_recv_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
-int MPIDI_IPC_ctrl_send_lmt_cnt_free_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
+int MPIDI_IPC_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
+int MPIDI_IPC_send_lmt_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr);
 
 #endif /* IPC_CONTROL_H_INCLUDED */

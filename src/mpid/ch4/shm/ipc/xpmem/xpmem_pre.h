@@ -90,7 +90,8 @@ typedef struct {
 } MPIDI_IPC_xpmem_am_unexp_rreq_t;
 
 typedef struct {
-    MPIDI_XPMEM_cnt_t *counter_ptr;
+    MPIDI_IPC_xpmem_cnt_t *counter_ptr;
+    MPIDI_IPC_xpmem_am_unexp_rreq_t unexp_rreq;
 } MPIDI_IPC_xpmem_am_request_t;
 
 extern MPIDI_IPC_xpmem_global_t MPIDI_IPC_xpmem_global;
