@@ -7,7 +7,7 @@
 #define IPC_PRE_H_INCLUDED
 
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "xpmem/xpmem_pre.h"
+#include "../xpmem/xpmem_pre.h"
 #endif
 
 typedef struct {

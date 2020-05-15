@@ -11,7 +11,7 @@
 #include "ipc_pre.h"
 #include "ipc_impl.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "xpmem/xpmem_send.h"
+#include "../xpmem/xpmem_send.h"
 #endif
 
 /*

@@ -6,7 +6,7 @@
 #include "ipc_impl.h"
 #include "ipc_noinline.h"
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
-#include "xpmem/xpmem_noinline.h"
+#include "../xpmem/xpmem_noinline.h"
 #endif
 
 int MPIDI_IPC_mpi_win_create_hook(MPIR_Win * win)
