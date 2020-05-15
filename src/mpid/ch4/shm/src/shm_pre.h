@@ -11,9 +11,12 @@
 #include "../posix/posix_pre.h"
 #include "../ipc/src/ipc_pre.h"
 
+#include "shm_control.h"
+
 typedef struct {
     MPIDI_POSIX_Global_t posix;
     MPIDI_IPC_Global_t ipc;
+    MPIDI_SHM_ctrl_cb ctrl_cbs[MPIDI_SHM_CTRL_IDS_MAX];
 } MPIDI_SHM_Global_t;
 
 #endif /* SHM_PRE_H_INCLUDED */
