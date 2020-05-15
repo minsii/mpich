@@ -12,10 +12,6 @@
 #define MPIDI_IPC_XPMEM_SEG_PREALLOC 8  /* Number of segments to preallocate in the "direct" block */
 #define MPIDI_IPC_XPMEM_CNT_PREALLOC 64 /* Number of shm counter to preallocate in the "direct" block */
 
-typedef struct {
-    int dummy;
-} MPIDI_IPC_xpmem_global_t;
-
 /* Variables used to indicate coop copy completion cases.
  *  See more explanation in xpmem_recv.h and xpmem_control.c */
 typedef enum {
