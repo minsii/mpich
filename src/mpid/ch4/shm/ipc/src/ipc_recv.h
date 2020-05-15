@@ -14,17 +14,14 @@
 #include "../xpmem/xpmem_recv.h"
 #endif
 
-#if (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS)
-
-/* Check if the matched receive request is expected in a shmmod and call
- * corresponding handling routine. If the request is handled by a shmmod,
- * recvd_flag is set to true. The caller should call fallback if no shmmod
+/* Check if the matched receive request is expected in an ipcmod and call
+ * corresponding handling routine. If the request is handled by an ipcmod,
+ * recvd_flag is set to true. The caller should call fallback if no ipcmod
  * handles it. */
-MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mmods_try_matched_recv(void *buf,
-                                                              MPI_Aint count,
-                                                              MPI_Datatype datatype,
-                                                              MPIR_Request * message,
-                                                              bool * recvd_flag)
+MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_try_matched_recv(void *buf,
+                                                        MPI_Aint count,
+                                                        MPI_Datatype datatype,
+                                                        MPIR_Request * message, bool * recvd_flag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MMODS_TRY_MATCHED_RECV);
@@ -32,7 +29,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mmods_try_matched_recv(void *buf,
 
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     /* XPMEM special receive */
-    if (MPIDI_SHM_REQUEST(message, status) & MPIDI_SHM_REQ_XPMEM_SEND_LMT) {
+    if (MPIDI_SHM_REQUEST(message, status) & MPIDI_SHM_REQ_IPC_SEND_LMT) {
         MPIR_Comm *root_comm = MPIDIG_context_id_to_comm(MPIDIG_REQUEST(message, context_id));
 
         /* Matching XPMEM LMT receive is now posted */
@@ -57,7 +54,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mmods_try_matched_recv(void *buf,
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MMODS_TRY_MATCHED_RECV);
     return mpi_errno;
 }
-#endif /* end of (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS) */
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_Datatype datatype,
                                                  int rank, int tag, MPIR_Comm * comm,
@@ -67,14 +63,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_IRECV);
 
-#if (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS)
     MPIR_Comm *root_comm = NULL;
     MPIR_Request *unexp_req = NULL;
     MPIR_Context_id_t context_id = comm->recvcontext_id + context_offset;
 
     /* When matches with an unexpected receive, it first tries to receive as
-     * a SHM optimized message (e.g., XPMEM SEND LMT). If fails, then receives
-     * as CH4 am message. Note that we maintain SHM optimized message in the
+     * an IPC optimized message (e.g., XPMEM SEND LMT). If fails, then receives
+     * as CH4 am message. Note that we maintain IPC optimized message in the
      * same unexpected|posted queues as that used by CH4 am messages in order
      * to ensure ordering.
      */
@@ -91,7 +86,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
         MPIDIG_REQUEST(unexp_req, req->status) |= MPIDIG_REQ_UNEXP_DQUED | MPIDIG_REQ_IN_PROGRESS;
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
 
-        mpi_errno = MPIDI_SHM_mpi_imrecv(buf, count, datatype, *request);
+        mpi_errno = MPIDI_IPC_mpi_imrecv(buf, count, datatype, *request);
         MPIR_ERR_CHECK(mpi_errno);
     } else {
         /* No matching request found, post the receive request  */
@@ -109,11 +104,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
         *request = rreq;
         MPIDI_POSIX_recv_posted_hook(*request, rank, comm);
     }
-#else /* default */
-    mpi_errno = MPIDI_POSIX_mpi_irecv(buf, count, datatype, rank, tag,
-                                      comm, context_offset, request);
-    MPIR_ERR_CHECK(mpi_errno);
-#endif /* end of (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS) */
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MPI_IRECV);
@@ -130,11 +120,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_imrecv(void *buf, MPI_Aint count, MPI
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_IMRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_IMRECV);
 
-#if (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS)
     bool recvd_flag = false;
 
-    /* Try shmmod specific matched receive */
-    mpi_errno = MPIDI_IPC_mmods_try_matched_recv(buf, count, datatype, message, &recvd_flag);
+    /* Try IPC specific matched receive */
+    mpi_errno = MPIDI_IPC_try_matched_recv(buf, count, datatype, message, &recvd_flag);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* If not received, then fallback to POSIX matched receive */
@@ -142,10 +131,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_imrecv(void *buf, MPI_Aint count, MPI
         mpi_errno = MPIDI_POSIX_mpi_imrecv(buf, count, datatype, message);
         MPIR_ERR_CHECK(mpi_errno);
     }
-#else /* default */
-    mpi_errno = MPIDI_POSIX_mpi_imrecv(buf, count, datatype, message);
-    MPIR_ERR_CHECK(mpi_errno);
-#endif /* end of (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS) */
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MPI_IMRECV);

@@ -107,7 +107,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_isend(const void *buf, MPI_Aint count
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_ISEND);
 
-#if (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS)
 #ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
     bool dt_contig;
     size_t data_sz;
@@ -124,14 +123,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_isend(const void *buf, MPI_Aint count
         goto fn_exit;
     }
 #endif /* end of MPIDI_CH4_SHM_ENABLE_XPMEM */
+
     mpi_errno = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm,
                                       context_offset, addr, request);
     MPIR_ERR_CHECK(mpi_errno);
-#else /* default */
-    mpi_errno = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm,
-                                      context_offset, addr, request);
-    MPIR_ERR_CHECK(mpi_errno);
-#endif /* end of (MPIDI_IPC_PT2PT_PROT == MPIDI_IPC_PT2PT_MULTIMODS) */
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MPI_ISEND);
