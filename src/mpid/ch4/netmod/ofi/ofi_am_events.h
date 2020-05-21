@@ -37,31 +37,31 @@ static inline int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * msg_hdr)
     in_data_sz = data_sz = msg_hdr->data_sz;
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, msg_hdr->payload,
-                                                       &p_data, &data_sz,
+                                                       &p_data, &data_sz, 0 /* is_local */ ,
                                                        &is_contig, &target_cmpl_cb, &rreq);
 
     if (!rreq)
         goto fn_exit;
 
-    if ((!p_data || !data_sz) && target_cmpl_cb) {
-        MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
-        target_cmpl_cb(rreq);
+    if (!p_data || !data_sz) {
+        if (target_cmpl_cb) {
+            MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
+            target_cmpl_cb(rreq);
+        }
         goto fn_exit;
     }
 
     if (is_contig) {
         if (in_data_sz > data_sz) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
         data_sz = MPL_MIN(data_sz, in_data_sz);
         MPIR_Memcpy(p_data, in_data, data_sz);
         MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
-    }
-    else {
+    } else {
         done = 0;
         rem = in_data_sz;
         iov = (struct iovec *) p_data;
@@ -76,8 +76,7 @@ static inline int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * msg_hdr)
 
         if (rem) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
@@ -107,12 +106,14 @@ static inline int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t * msg_hdr,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
-                                                       NULL, NULL, NULL, &target_cmpl_cb, &rreq);
+                                                       NULL, NULL, 0 /* is_local */ ,
+                                                       NULL, &target_cmpl_cb, &rreq);
 
     if (!rreq)
         goto fn_exit;
 
     if (target_cmpl_cb) {
+        MPIR_STATUS_SET_COUNT(rreq->status, 0);
         target_cmpl_cb(rreq);
     }
 
@@ -154,7 +155,7 @@ static inline int MPIDI_OFI_do_rdma_read(void *dst,
         MPIDI_OFI_cntr_incr();
 
         struct iovec iov = {
-            .iov_base = (char *)dst + done,
+            .iov_base = (char *) dst + done,
             .iov_len = curr_len
         };
         struct fi_rma_iov rma_iov = {
@@ -166,16 +167,15 @@ static inline int MPIDI_OFI_do_rdma_read(void *dst,
             .msg_iov = &iov,
             .desc = NULL,
             .iov_count = 1,
-            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank, MPIDI_OFI_API_TAG),
+            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank),
             .rma_iov = &rma_iov,
             .rma_iov_count = 1,
             .context = &am_req->context,
             .data = 0
         };
 
-        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_OFI_EP_TX_RMA(0),
-                                           &msg,
-                                           FI_COMPLETION), FALSE /* no lock */ , read);
+        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_Global.ctx[0].tx,
+                                           &msg, FI_COMPLETION), FALSE /* no lock */ , read);
 
         done += curr_len;
         rem -= curr_len;
@@ -183,43 +183,6 @@ static inline int MPIDI_OFI_do_rdma_read(void *dst,
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_RDMA_READ);
-    return mpi_errno;
-  fn_fail:
-    goto fn_exit;
-}
-
-#undef FUNCNAME
-#define FUNCNAME MPIDI_OFI_handle_long_am_hdr
-#undef FCNAME
-#define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_OFI_handle_long_am_hdr(MPIDI_OFI_am_header_t * msg_hdr)
-{
-    int mpi_errno = MPI_SUCCESS;
-    MPIDI_OFI_lmt_msg_payload_t *lmt_msg;
-    MPIR_Request *rreq;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_LONG_AM_HDR);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_LONG_AM_HDR);
-
-    rreq = MPIR_Request_create(MPIR_REQUEST_KIND__RECV);
-
-    mpi_errno = MPIDI_OFI_am_init_request(NULL, 0, rreq);
-
-    if (mpi_errno != MPI_SUCCESS)
-        MPIR_ERR_POP(mpi_errno);
-
-    lmt_msg = (MPIDI_OFI_lmt_msg_payload_t *) msg_hdr->payload;
-    MPIDI_OFI_AMREQUEST_HDR(rreq, lmt_info) = *lmt_msg;
-    MPIDI_OFI_AMREQUEST_HDR(rreq, msg_hdr) = *msg_hdr;
-    MPIDI_OFI_AMREQUEST_HDR(rreq, rreq_ptr) = (void *) rreq;
-    MPIDI_OFI_AMREQUEST_HDR(rreq, am_hdr) = MPL_malloc(msg_hdr->am_hdr_sz);
-    MPIDI_OFI_AMREQUEST_HDR(rreq, lmt_cntr) =
-        ((msg_hdr->am_hdr_sz - 1) / MPIDI_Global.max_send) + 1;
-    MPIDI_OFI_do_rdma_read(MPIDI_OFI_AMREQUEST_HDR(rreq, am_hdr), lmt_msg->am_hdr_src,
-                           msg_hdr->am_hdr_sz, lmt_msg->context_id, lmt_msg->src_rank, rreq);
-
-  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_LONG_AM_HDR);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -244,8 +207,8 @@ static inline int MPIDI_OFI_do_handle_long_am(MPIDI_OFI_am_header_t * msg_hdr,
 
     in_data_sz = data_sz = msg_hdr->data_sz;
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
-                                                       &p_data, &data_sz, &is_contig,
-                                                       &target_cmpl_cb, &rreq);
+                                                       &p_data, &data_sz, 0 /* is_local */ ,
+                                                       &is_contig, &target_cmpl_cb, &rreq);
 
     if (!rreq)
         goto fn_exit;
@@ -262,7 +225,7 @@ static inline int MPIDI_OFI_do_handle_long_am(MPIDI_OFI_am_header_t * msg_hdr,
 
     if ((!p_data || !data_sz) && target_cmpl_cb) {
         target_cmpl_cb(rreq);
-        MPID_Request_complete(rreq);   /* FIXME: Should not call MPIDI in NM ? */
+        MPID_Request_complete(rreq);    /* FIXME: Should not call MPIDI in NM ? */
         goto fn_exit;
     }
 
@@ -273,8 +236,7 @@ static inline int MPIDI_OFI_do_handle_long_am(MPIDI_OFI_am_header_t * msg_hdr,
     if (is_contig) {
         if (in_data_sz > data_sz) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
@@ -284,8 +246,7 @@ static inline int MPIDI_OFI_do_handle_long_am(MPIDI_OFI_am_header_t * msg_hdr,
                                lmt_msg->src_offset,
                                data_sz, lmt_msg->context_id, lmt_msg->src_rank, rreq);
         MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
-    }
-    else {
+    } else {
         done = 0;
         rem = in_data_sz;
         iov = (struct iovec *) p_data;
@@ -316,8 +277,7 @@ static inline int MPIDI_OFI_do_handle_long_am(MPIDI_OFI_am_header_t * msg_hdr,
 
         if (rem) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
@@ -367,15 +327,23 @@ static inline int MPIDI_OFI_handle_lmt_ack(MPIDI_OFI_am_header_t * msg_hdr)
     MPIR_Request *sreq;
     MPIDI_OFI_ack_msg_payload_t *ack_msg;
     int handler_id;
-    uint64_t index;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_LMT_ACK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_LMT_ACK);
 
     ack_msg = (MPIDI_OFI_ack_msg_payload_t *) msg_hdr->payload;
     sreq = (MPIR_Request *) ack_msg->sreq_ptr;
 
-    index = fi_mr_key(MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr)) >> MPIDI_Global.huge_rma_shift;
-    MPIDI_OFI_index_allocator_free(MPIDI_OFI_COMM(MPIR_Process.comm_world).rma_id_allocator, index);
+    if (MPIDI_OFI_ENABLE_MR_SCALABLE) {
+        uint32_t idx_back;
+        int key_type;
+        uint64_t mr_key = fi_mr_key(MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr));
+
+        MPIDI_OFI_rma_key_unpack(mr_key, NULL, &key_type, &idx_back);
+        MPIR_Assert(MPIDI_OFI_KEY_TYPE_HUGE_RMA == key_type);
+
+        MPIDI_OFI_index_allocator_free(MPIDI_OFI_COMM(MPIR_Process.comm_world).rma_id_allocator,
+                                       idx_back);
+    }
     MPIDI_OFI_CALL_NOLOCK(fi_close(&MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr)->fid), mr_unreg);
     OPA_decr_int(&MPIDI_Global.am_inflight_rma_send_mrs);
 
@@ -384,7 +352,7 @@ static inline int MPIDI_OFI_handle_lmt_ack(MPIDI_OFI_am_header_t * msg_hdr)
     }
 
     handler_id = MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr).handler_id;
-    MPID_Request_complete(sreq);       /* FIXME: Should not call MPIDI in NM ? */
+    MPID_Request_complete(sreq);        /* FIXME: Should not call MPIDI in NM ? */
     mpi_errno = MPIDIG_global.origin_cbs[handler_id] (sreq);
 
     if (mpi_errno)
@@ -401,9 +369,7 @@ static inline int MPIDI_OFI_handle_lmt_ack(MPIDI_OFI_am_header_t * msg_hdr)
 #define FUNCNAME MPIDI_OFI_dispatch_ack
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_OFI_dispatch_ack(int rank,
-                                         int context_id,
-                                         uint64_t sreq_ptr, int am_type, void *netmod_context)
+static inline int MPIDI_OFI_dispatch_ack(int rank, int context_id, uint64_t sreq_ptr, int am_type)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_ack_msg_t msg;
@@ -418,8 +384,8 @@ static inline int MPIDI_OFI_dispatch_ack(int rank,
     msg.hdr.data_sz = 0;
     msg.hdr.am_type = am_type;
     msg.pyld.sreq_ptr = sreq_ptr;
-    MPIDI_OFI_CALL_RETRY_AM(fi_inject(MPIDI_OFI_EP_TX_MSG(0), &msg, sizeof(msg),
-                                      MPIDI_OFI_comm_to_phys(comm, rank, MPIDI_OFI_API_TAG)),
+    MPIDI_OFI_CALL_RETRY_AM(fi_inject(MPIDI_Global.ctx[0].tx, &msg, sizeof(msg),
+                                      MPIDI_OFI_comm_to_phys(comm, rank)),
                             FALSE /* no lock */ , inject);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DISPATCH_ACK);

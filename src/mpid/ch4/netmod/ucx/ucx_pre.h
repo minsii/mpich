@@ -11,12 +11,8 @@
 
 #include <ucp/api/ucp.h>
 
-#define HAVE_MPIDI_NM_type_commit_hook
-#define HAVE_MPIDI_NM_type_free_hook
-
 #define MPIDI_UCX_KVSAPPSTRLEN 4096
 
-//#define MPIDI_UCX_NAME_LEN             (512)
 typedef struct {
     void *req;
 } MPIDI_UCX_ucp_request_t;
@@ -49,11 +45,21 @@ typedef struct MPIDI_UCX_win_info {
     uint32_t disp;
 } __attribute__ ((packed)) MPIDI_UCX_win_info_t;
 
+typedef enum {
+    MPIDI_UCX_WIN_SYNC_UNSET = 0,
+    MPIDI_UCX_WIN_SYNC_FLUSH_LOCAL = 1, /* need both local and remote flush */
+    MPIDI_UCX_WIN_SYNC_FLUSH = 2        /* need only remote flush */
+} MPIDI_UCX_win_sync_flag_t;
+
+typedef struct MPIDI_UCX_win_target_sync {
+    MPIDI_UCX_win_sync_flag_t need_sync;        /* flag for op completion */
+    bool outstanding_atomics;   /* flag for atomics ordering and atomicity */
+} MPIDI_UCX_win_target_sync_t;
 
 typedef struct {
     MPIDI_UCX_win_info_t *info_table;
     ucp_mem_h mem_h;
-    int need_local_flush;
+    MPIDI_UCX_win_target_sync_t *target_sync;
 } MPIDI_UCX_win_t;
 
 typedef struct {

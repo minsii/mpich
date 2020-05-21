@@ -35,8 +35,7 @@ int MPIDIG_am_reg_cb(int handler_id,
 #define FUNCNAME MPIDIG_init
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self,
-                int num_contexts, void **netmod_contexts)
+int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self, int n_vnis)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_INIT);
@@ -46,7 +45,7 @@ int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self,
 
     MPIDI_CH4_Global.comm_req_lists = (MPIDI_CH4U_comm_req_list_t *)
         MPL_calloc(MPIR_MAX_CONTEXT_MASK * MPIR_CONTEXT_INT_BITS,
-                   sizeof(MPIDI_CH4U_comm_req_list_t));
+                   sizeof(MPIDI_CH4U_comm_req_list_t), MPL_MEM_OTHER);
 #ifndef MPIDI_CH4U_USE_PER_COMM_QUEUE
     MPIDI_CH4_Global.posted_list = NULL;
     MPIDI_CH4_Global.unexp_list = NULL;
@@ -221,6 +220,12 @@ int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self,
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
+    mpi_errno = MPIDIG_am_reg_cb(MPIDI_CH4U_COMM_ABORT,
+                                 &MPIDI_comm_abort_origin_cb, &MPIDI_comm_abort_target_msg_cb);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+
     mpi_errno = MPIDI_CH4U_init_comm(comm_world);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
@@ -229,7 +234,15 @@ int MPIDIG_init(MPIR_Comm * comm_world, MPIR_Comm * comm_self,
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
-    MPIDI_CH4_Global.win_hash = NULL;
+    MPIDI_CH4U_map_create((void **) &(MPIDI_CH4_Global.win_map), MPL_MEM_RMA);
+
+    mpi_errno = MPIDI_CH4R_RMA_Init_sync_pvars();
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    mpi_errno = MPIDI_CH4R_RMA_Init_targetcb_pvars();
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
     MPIDI_CH4_Global.is_ch4u_initialized = 1;
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_INIT);
@@ -250,7 +263,7 @@ void MPIDIG_finalize(void)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_FINALIZE);
 
     MPIDI_CH4_Global.is_ch4u_initialized = 0;
-    MPL_HASH_CLEAR(dev.ch4u.hash_handle, MPIDI_CH4_Global.win_hash);
+    MPIDI_CH4U_map_destroy(MPIDI_CH4_Global.win_map);
     MPIDI_CH4R_destroy_buf_pool(MPIDI_CH4_Global.buf_pool);
     MPL_free(MPIDI_CH4_Global.comm_req_lists);
 

@@ -13,10 +13,10 @@
 
 MPL_SUPPRESS_OSX_HAS_NO_SYMBOLS_WARNING;
 
-#ifndef NETMOD_DIRECT
+#ifndef NETMOD_INLINE
 #define NETMOD_DISABLE_INLINES
 #include "mpidimpl.h"
-#include "netmod_direct.h"
+#include "netmod_inline.h"
 
 MPIDI_NM_funcs_t MPIDI_NM_portals4_funcs = {
     MPIDI_NM_mpi_init_hook,
@@ -33,8 +33,20 @@ MPIDI_NM_funcs_t MPIDI_NM_portals4_funcs = {
     MPIDI_NM_create_intercomm_from_lpids,
     MPIDI_NM_mpi_comm_create_hook,
     MPIDI_NM_mpi_comm_free_hook,
+    MPIDI_NM_mpi_win_create_hook,
+    MPIDI_NM_mpi_win_allocate_hook,
+    MPIDI_NM_mpi_win_allocate_shared_hook,
+    MPIDI_NM_mpi_win_create_dynamic_hook,
+    MPIDI_NM_mpi_win_attach_hook,
+    MPIDI_NM_mpi_win_detach_hook,
+    MPIDI_NM_mpi_win_free_hook,
+    MPIDI_NM_rma_win_cmpl_hook,
+    MPIDI_NM_rma_win_local_cmpl_hook,
+    MPIDI_NM_rma_target_cmpl_hook,
+    MPIDI_NM_rma_target_local_cmpl_hook,
     MPIDI_NM_am_request_init,
     MPIDI_NM_am_request_finalize,
+    MPIDI_NM_prequest_free_hook,
     MPIDI_NM_am_send_hdr,
     MPIDI_NM_am_isend,
     MPIDI_NM_am_isendv,
@@ -144,6 +156,28 @@ MPIDI_NM_native_funcs_t MPIDI_NM_native_portals4_funcs = {
     MPIDI_NM_mpi_iscan,
     MPIDI_NM_mpi_iscatter,
     MPIDI_NM_mpi_iscatterv,
+    MPIDI_NM_mpi_ibarrier_sched,
+    MPIDI_NM_mpi_ibcast_sched,
+    MPIDI_NM_mpi_iallgather_sched,
+    MPIDI_NM_mpi_iallgatherv_sched,
+    MPIDI_NM_mpi_iallreduce_sched,
+    MPIDI_NM_mpi_ialltoall_sched,
+    MPIDI_NM_mpi_ialltoallv_sched,
+    MPIDI_NM_mpi_ialltoallw_sched,
+    MPIDI_NM_mpi_iexscan_sched,
+    MPIDI_NM_mpi_igather_sched,
+    MPIDI_NM_mpi_igatherv_sched,
+    MPIDI_NM_mpi_ireduce_scatter_block_sched,
+    MPIDI_NM_mpi_ireduce_scatter_sched,
+    MPIDI_NM_mpi_ireduce_sched,
+    MPIDI_NM_mpi_iscan_sched,
+    MPIDI_NM_mpi_iscatter_sched,
+    MPIDI_NM_mpi_iscatterv_sched,
+    MPIDI_NM_mpi_ineighbor_allgather_sched,
+    MPIDI_NM_mpi_ineighbor_allgatherv_sched,
+    MPIDI_NM_mpi_ineighbor_alltoall_sched,
+    MPIDI_NM_mpi_ineighbor_alltoallv_sched,
+    MPIDI_NM_mpi_ineighbor_alltoallw_sched,
     MPIDI_NM_mpi_type_commit_hook,
     MPIDI_NM_mpi_type_free_hook,
     MPIDI_NM_mpi_op_commit_hook,

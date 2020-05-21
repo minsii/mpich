@@ -12,9 +12,13 @@
 #include "ucx_impl.h"
 //#include "events.h"
 
-static inline int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_UCX_am_handler
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
 {
-    int mpi_errno;
+    int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
     void *p_data;
     void *in_data;
@@ -29,8 +33,8 @@ static inline int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
     in_data_sz = data_sz = msg_hdr->data_sz;
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, msg_hdr->payload,
-                                                       &p_data, &data_sz, &is_contig,
-                                                       &target_cmpl_cb, &rreq);
+                                                       &p_data, &data_sz, 0 /* is_local */ ,
+                                                       &is_contig, &target_cmpl_cb, &rreq);
 
     if (!rreq)
         goto fn_exit;
@@ -44,16 +48,14 @@ static inline int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
     if (is_contig) {
         if (in_data_sz > data_sz) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
         data_sz = MPL_MIN(data_sz, in_data_sz);
         MPIR_Memcpy(p_data, in_data, data_sz);
         MPIR_STATUS_SET_COUNT(rreq->status, data_sz);
-    }
-    else {
+    } else {
         done = 0;
         rem = in_data_sz;
         iov = (struct iovec *) p_data;
@@ -68,8 +70,7 @@ static inline int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
 
         if (rem) {
             rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-        }
-        else {
+        } else {
             rreq->status.MPI_ERROR = MPI_SUCCESS;
         }
 
@@ -84,26 +85,24 @@ static inline int MPIDI_UCX_am_handler(void *msg, size_t msg_sz)
     return mpi_errno;
 }
 
-static inline void MPIDI_UCX_Handle_am_recv(void *request, ucs_status_t status,
-                                            ucp_tag_recv_info_t * info)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_UCX_Handle_am_recv
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX void MPIDI_UCX_Handle_am_recv(void *request, ucs_status_t status,
+                                                       ucp_tag_recv_info_t * info)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_UCX_ucp_request_t *ucp_request = (MPIDI_UCX_ucp_request_t *) request;
 
-    if (status == UCS_ERR_CANCELED) {
-        goto fn_exit;
-    }
-  fn_exit:
     return;
-  fn_fail:
-    goto fn_exit;
 }
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_NM_progress
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_NM_progress(void *netmod_context, int blocking)
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_progress(int vni, int blocking)
 {
     int mpi_errno = MPI_SUCCESS;
     ucp_tag_recv_info_t info;
@@ -114,7 +113,7 @@ static inline int MPIDI_NM_progress(void *netmod_context, int blocking)
     message_handle =
         ucp_tag_probe_nb(MPIDI_UCX_global.worker, MPIDI_UCX_AM_TAG, MPIDI_UCX_AM_TAG, 1, &info);
     while (message_handle) {
-        am_buf = MPL_malloc(info.length);
+        am_buf = MPL_malloc(info.length, MPL_MEM_BUFFER);
         ucp_request = (MPIDI_UCX_ucp_request_t *) ucp_tag_msg_recv_nb(MPIDI_UCX_global.worker,
                                                                       am_buf,
                                                                       info.length,
@@ -129,8 +128,7 @@ static inline int MPIDI_NM_progress(void *netmod_context, int blocking)
         MPIDI_UCX_am_handler(am_buf, info.length);
         MPL_free(am_buf);
         message_handle =
-            ucp_tag_probe_nb(MPIDI_UCX_global.worker, MPIDI_UCX_AM_TAG,
-                             MPIDI_UCX_AM_TAG, 1, &info);
+            ucp_tag_probe_nb(MPIDI_UCX_global.worker, MPIDI_UCX_AM_TAG, MPIDI_UCX_AM_TAG, 1, &info);
 
     }
 
@@ -138,8 +136,6 @@ static inline int MPIDI_NM_progress(void *netmod_context, int blocking)
 
   fn_exit:
     return mpi_errno;
-  fn_fail:
-    goto fn_exit;
 }
 
 #endif /* UCX_PROGRESS_H_INCLUDED */

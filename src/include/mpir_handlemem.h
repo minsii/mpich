@@ -31,8 +31,8 @@ int MPIR_check_handles_on_finalize(void *objmem_ptr);
    // Define the number of preallocated entries # omitted)
    define MPID_<OBJ>_PREALLOC 256
    MPIR_Object_alloc_t MPID_<obj>_mem = { 0, 0, 0, 0, MPID_<obj>,
-				      sizeof(MPID_<obj>), MPID_<obj>_direct,
-                                      MPID_<OBJ>_PREALLOC, };
+                                          sizeof(MPID_<obj>), MPID_<obj>_direct,
+                                          MPID_<OBJ>_PREALLOC, };
 
    // Preallocated objects
    MPID_<obj> MPID_<obj>_direct[MPID_<OBJ>_PREALLOC];
@@ -134,7 +134,7 @@ static inline void *MPIR_Handle_indirect_init(void *(**indirect)[],
     /* Create the table */
     if (!*indirect) {
         /* printf("Creating indirect table with %d pointers to blocks in it\n", indirect_num_blocks); */
-        *indirect = (void *) MPL_calloc(indirect_num_blocks, sizeof(void *));
+        *indirect = (void *) MPL_calloc(indirect_num_blocks, sizeof(void *), MPL_MEM_OBJECT);
         if (!*indirect) {
             return 0;
         }
@@ -149,7 +149,7 @@ static inline void *MPIR_Handle_indirect_init(void *(**indirect)[],
 
     /* Create the next block */
     /* printf("Creating indirect block number %d with %d objects in it\n", *indirect_size, indirect_num_indices); */
-    block_ptr = (void *) MPL_calloc(indirect_num_indices, obj_size);
+    block_ptr = (void *) MPL_calloc(indirect_num_indices, obj_size, MPL_MEM_OBJECT);
     if (!block_ptr) {
         return 0;
     }
@@ -208,7 +208,7 @@ Input Parameters:
   MPI_Requests) and should not call any other routines in the common
   case.
 
-  Threading: The 'MPID_THREAD_CS_ENTER/EXIT(POBJ, MPIR_THREAD_POBJ_HANDLE_MUTEX)' enables both
+  Threading: The 'MPID_THREAD_CS_ENTER/EXIT(POBJ/VNI, MPIR_THREAD_POBJ_HANDLE_MUTEX)' enables both
   finer-grain
   locking with a single global mutex and with a mutex specific for handles.
 
@@ -221,7 +221,9 @@ static inline void *MPIR_Handle_obj_alloc(MPIR_Object_alloc_t * objmem)
 {
     void *ret;
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_HANDLE_MUTEX);
+    MPID_THREAD_CS_ENTER(VNI, MPIR_THREAD_POBJ_HANDLE_MUTEX);
     ret = MPIR_Handle_obj_alloc_unsafe(objmem);
+    MPID_THREAD_CS_EXIT(VNI, MPIR_THREAD_POBJ_HANDLE_MUTEX);
     MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_HANDLE_MUTEX);
     return ret;
 }
@@ -241,8 +243,7 @@ static inline void *MPIR_Handle_obj_alloc_unsafe(MPIR_Object_alloc_t * objmem)
          * when doing memory debugging and we don't need to set it
          * for the production/default case */
         /* ptr points to object to allocate */
-    }
-    else {
+    } else {
         int objsize, objkind;
 
         objsize = objmem->size;
@@ -259,7 +260,6 @@ static inline void *MPIR_Handle_obj_alloc_unsafe(MPIR_Object_alloc_t * objmem)
             if (ptr) {
                 objmem->avail = ptr->next;
             }
-
 #ifdef MPICH_DEBUG_HANDLEALLOC
             /* The priority of these callbacks must be greater than
              * the priority of the callback that frees the objmem direct and
@@ -269,8 +269,7 @@ static inline void *MPIR_Handle_obj_alloc_unsafe(MPIR_Object_alloc_t * objmem)
 #endif
             MPIR_Add_finalize(MPIR_Handle_finalize, objmem, 0);
             /* ptr points to object to allocate */
-        }
-        else {
+        } else {
             /* no space left in direct block; setup the indirect block. */
 
             ptr = MPIR_Handle_indirect_init(&objmem->indirect,
@@ -339,6 +338,7 @@ static inline void MPIR_Handle_obj_free(MPIR_Object_alloc_t * objmem, void *obje
     MPIR_Handle_common *obj = (MPIR_Handle_common *) object;
 
     MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_POBJ_HANDLE_MUTEX);
+    MPID_THREAD_CS_ENTER(VNI, MPIR_THREAD_POBJ_HANDLE_MUTEX);
 
     MPL_DBG_MSG_FMT(MPIR_DBG_HANDLE, TYPICAL, (MPL_DBG_FDEST,
                                                "Freeing object ptr %p (0x%08x kind=%s) refcount=%d",
@@ -382,6 +382,7 @@ static inline void MPIR_Handle_obj_free(MPIR_Object_alloc_t * objmem, void *obje
 
     obj->next = objmem->avail;
     objmem->avail = obj;
+    MPID_THREAD_CS_EXIT(VNI, MPIR_THREAD_POBJ_HANDLE_MUTEX);
     MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_POBJ_HANDLE_MUTEX);
 }
 

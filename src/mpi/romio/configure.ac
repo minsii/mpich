@@ -31,6 +31,8 @@ AM_PROG_CC_C_O
 PAC_CHECK_VISIBILITY
 AC_SUBST(VISIBILITY_CFLAGS)
 
+AC_USE_SYSTEM_EXTENSIONS
+
 AM_PROG_AR
 
 LT_INIT([])
@@ -185,7 +187,7 @@ dnl An m4 macro for use with m4_foreach_w and friends.  You should modify this
 dnl list if you want to add a known file system.  The list is just whitespace
 dnl separated, so you can use newlines and tabs as well.
 m4_define([known_filesystems_m4_w],
-          [nfs ufs pvfs2 testfs xfs panfs lustre gpfs])dnl
+          [nfs ufs pvfs2 testfs xfs panfs lustre gpfs ime])dnl
 dnl
 dnl An m4 macro for use with m4_foreach and friends.  Expands to a quoted list of
 dnl quoted elements.  A bit easier to use without unintended expansion than the
@@ -481,7 +483,7 @@ AC_TYPE_OFF_T
 # Header files
 # Find the CPP before the header check
 AC_PROG_CPP
-AC_CHECK_HEADERS([unistd.h fcntl.h malloc.h stddef.h sys/types.h limits.h time.h])
+AC_CHECK_HEADERS([unistd.h fcntl.h malloc.h stddef.h sys/types.h limits.h time.h dirent.h])
 AC_CHECK_HEADERS(mpix.h,,,[#include <mpi.h>])
 #
 
@@ -882,12 +884,31 @@ fi
 #
 # Verify presence of lustre/lustre_user.h
 #
+lustre_lockahead="no"
 if test -n "$file_system_lustre"; then
-    AC_CHECK_HEADERS(lustre/lustre_user.h,
-        AC_DEFINE(ROMIO_LUSTRE,1,[Define for ROMIO with LUSTRE]),
-        AC_MSG_ERROR([LUSTRE support requested but cannot find lustre/lustre_user.h header file])                                        
-    )
+    AC_CHECK_HEADERS([linux/lustre/lustre_user.h lustre/lustre_user.h],
+        break)
+    if test x"$ac_cv_header_linux_lustre_lustre_user_h" = "xyes" -o x"$ac_cv_header_lustre_lustre_user_h" = "xyes" ; then
+        AC_DEFINE(ROMIO_LUSTRE, 1, [Define for ROMIO with LUSTRE])
+    else
+        AC_MSG_ERROR([LUSTRE support requested but cannot find lustre/lustre_user.h header file])
+    fi
+    AC_COMPILE_IFELSE([
+        AC_LANG_SOURCE([
+#include <lustre/lustre_user.h>
+#include <sys/ioctl.h>
+        int main(int argc, char **argv) {
+            int fd=100;
+            struct ladvise_hdr *ladvise_hdr;
+            ioctl(fd, LL_IOC_LADVISE, &ladvise_hdr);
+            return 0; }
+        ])],
+        lustre_lockahead="yes"
+	AC_DEFINE(HAVE_LUSTRE_LOCKAHEAD, 1, [Define if LUSTRE_LOCKAHEAD is enabled.]) )
 fi
+
+# Add conditional compilation of Lustre lockahead sources
+AM_CONDITIONAL([LUSTRE_LOCKAHEAD],[test "$lustre_lockahead" = "yes"])
 
 if test -n "$file_system_xfs"; then
     AC_DEFINE(ROMIO_XFS,1,[Define for ROMIO with XFS])
@@ -926,6 +947,13 @@ int main(int argc, char **argv) {
         AC_MSG_RESULT(assuming 128 for memory alignment)
         CFLAGS="$CFLAGS -DXFS_MEMALIGN=128"
     fi
+fi
+
+if test -n "$file_system_ime"; then
+        AC_CHECK_HEADERS(ime_native.h,
+                AC_DEFINE(ROMIO_IME,1,[Define for ROMIO with IME]),
+                AC_MSG_ERROR([IME support requested but cannot find ime_native.h header file])
+        )
 fi
 
 #

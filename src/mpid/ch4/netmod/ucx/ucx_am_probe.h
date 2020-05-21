@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2017 by Argonne National Laboratory.
+ *  (C) 2016 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  *
  *  Portions of this code were written by Intel Corporation.
@@ -13,11 +13,16 @@
 
 #include "ucx_impl.h"
 
-static inline int MPIDI_NM_mpi_improbe(int source,
-                                       int tag,
-                                       MPIR_Comm * comm,
-                                       int context_offset,
-                                       int *flag, MPIR_Request ** message, MPI_Status * status)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_NM_mpi_improbe
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_improbe(int source,
+                                                  int tag,
+                                                  MPIR_Comm * comm,
+                                                  int context_offset, MPIDI_av_entry_t * addr,
+                                                  int *flag, MPIR_Request ** message,
+                                                  MPI_Status * status)
 {
     int mpi_errno;
 
@@ -30,10 +35,15 @@ static inline int MPIDI_NM_mpi_improbe(int source,
     return mpi_errno;
 }
 
-static inline int MPIDI_NM_mpi_iprobe(int source,
-                                      int tag,
-                                      MPIR_Comm * comm,
-                                      int context_offset, int *flag, MPI_Status * status)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_NM_mpi_iprobe
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_iprobe(int source,
+                                                 int tag,
+                                                 MPIR_Comm * comm,
+                                                 int context_offset, MPIDI_av_entry_t * addr,
+                                                 int *flag, MPI_Status * status)
 {
     int mpi_errno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_IPROBE);

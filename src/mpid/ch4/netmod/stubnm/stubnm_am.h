@@ -19,9 +19,7 @@ static inline int MPIDI_NM_am_isend(int rank,
                                     const void *am_hdr,
                                     size_t am_hdr_sz,
                                     const void *data,
-                                    MPI_Count count,
-                                    MPI_Datatype datatype, MPIR_Request * sreq,
-                                    void *netmod_context)
+                                    MPI_Count count, MPI_Datatype datatype, MPIR_Request * sreq)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
@@ -33,9 +31,7 @@ static inline int MPIDI_NM_am_isendv(int rank,
                                      struct iovec *am_hdr,
                                      size_t iov_len,
                                      const void *data,
-                                     MPI_Count count,
-                                     MPI_Datatype datatype,
-                                     MPIR_Request * sreq, void *netmod_context)
+                                     MPI_Count count, MPI_Datatype datatype, MPIR_Request * sreq)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
@@ -61,8 +57,7 @@ static inline size_t MPIDI_NM_am_hdr_max_sz(void)
 
 static inline int MPIDI_NM_am_send_hdr(int rank,
                                        MPIR_Comm * comm,
-                                       int handler_id,
-                                       const void *am_hdr, size_t am_hdr_sz, void *netmod_context)
+                                       int handler_id, const void *am_hdr, size_t am_hdr_sz)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;

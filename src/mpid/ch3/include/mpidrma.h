@@ -4,8 +4,8 @@
  *      See COPYRIGHT in top-level directory.
  */
 
-#if !defined(MPID_RMA_H_INCLUDED)
-#define MPID_RMA_H_INCLUDED
+#ifndef MPIDRMA_H_INCLUDED
+#define MPIDRMA_H_INCLUDED
 
 #include "mpid_rma_types.h"
 #include "mpid_rma_oplist.h"
@@ -335,7 +335,7 @@ static inline int enqueue_lock_origin(MPIR_Win * win_ptr, MPIDI_VC_t * vc,
     if (new_ptr != NULL) {
         MPIDI_RMA_Target_lock_entry_t **head_ptr =
             (MPIDI_RMA_Target_lock_entry_t **) (&(win_ptr->target_lock_queue_head));
-        MPL_DL_APPEND((*head_ptr), new_ptr);
+        DL_APPEND((*head_ptr), new_ptr);
         new_ptr->vc = vc;
     }
     else {
@@ -370,8 +370,8 @@ static inline int enqueue_lock_origin(MPIR_Win * win_ptr, MPIDI_VC_t * vc,
         MPIDI_CH3_PKT_RMA_GET_TARGET_COUNT((*pkt), target_count, mpi_errno);
         MPIDI_CH3_PKT_RMA_GET_FLAGS((*pkt), flags, mpi_errno);
 
-        MPIDU_Datatype_get_extent_macro(target_dtp, type_extent);
-        MPIDU_Datatype_get_size_macro(target_dtp, type_size);
+        MPIR_Datatype_get_extent_macro(target_dtp, type_extent);
+        MPIR_Datatype_get_size_macro(target_dtp, type_size);
 
         if (pkt->type == MPIDI_CH3_PKT_PUT) {
             recv_data_sz = type_size * target_count;
@@ -410,7 +410,7 @@ static inline int enqueue_lock_origin(MPIR_Win * win_ptr, MPIDI_VC_t * vc,
         if (new_ptr != NULL) {
             if (win_ptr->current_target_lock_data_bytes + buf_size <
                 MPIR_CVAR_CH3_RMA_TARGET_LOCK_DATA_BYTES) {
-                new_ptr->data = MPL_malloc(buf_size);
+                new_ptr->data = MPL_malloc(buf_size, MPL_MEM_BUFFER);
             }
 
             if (new_ptr->data == NULL) {
@@ -834,7 +834,7 @@ static inline int acquire_local_lock(MPIR_Win * win_ptr, int lock_type)
                 MPIR_ERR_POP(mpi_errno);
             goto fn_exit;
         }
-        MPL_DL_APPEND((*head_ptr), new_ptr);
+        DL_APPEND((*head_ptr), new_ptr);
         MPIDI_Comm_get_vc_set_active(win_ptr->comm_ptr, win_ptr->comm_ptr->rank, &my_vc);
         new_ptr->vc = my_vc;
 
@@ -900,8 +900,8 @@ static inline int do_accumulate_op(void *source_buf, int source_count, MPI_Datat
 
     if (is_empty_source == FALSE) {
         MPIR_Assert(MPIR_DATATYPE_IS_PREDEFINED(source_dtp));
-        MPIDU_Datatype_get_size_macro(source_dtp, source_dtp_size);
-        MPIDU_Datatype_get_extent_macro(source_dtp, source_dtp_extent);
+        MPIR_Datatype_get_size_macro(source_dtp, source_dtp_size);
+        MPIR_Datatype_get_extent_macro(source_dtp, source_dtp_extent);
     }
 
     if (HANDLE_GET_KIND(acc_op) == HANDLE_KIND_BUILTIN) {
@@ -936,18 +936,18 @@ static inline int do_accumulate_op(void *source_buf, int source_count, MPI_Datat
     }
     else {
         /* derived datatype */
-        MPIDU_Segment *segp;
+        MPIR_Segment *segp;
         DLOOP_VECTOR *dloop_vec;
         MPI_Aint first, last;
         int vec_len, i, count;
         MPI_Aint type_extent, type_size;
         MPI_Datatype type;
-        MPIDU_Datatype*dtp;
+        MPIR_Datatype*dtp;
         MPI_Aint curr_len;
         void *curr_loc;
         int accumulated_count;
 
-        segp = MPIDU_Segment_alloc();
+        segp = MPIR_Segment_alloc();
         /* --BEGIN ERROR HANDLING-- */
         if (!segp) {
             mpi_errno =
@@ -957,15 +957,15 @@ static inline int do_accumulate_op(void *source_buf, int source_count, MPI_Datat
             return mpi_errno;
         }
         /* --END ERROR HANDLING-- */
-        MPIDU_Segment_init(NULL, target_count, target_dtp, segp, 0);
+        MPIR_Segment_init(NULL, target_count, target_dtp, segp);
         first = stream_offset;
         last = first + source_count * source_dtp_size;
 
-        MPIDU_Datatype_get_ptr(target_dtp, dtp);
+        MPIR_Datatype_get_ptr(target_dtp, dtp);
         vec_len = dtp->max_contig_blocks * target_count + 1;
         /* +1 needed because Rob says so */
         dloop_vec = (DLOOP_VECTOR *)
-            MPL_malloc(vec_len * sizeof(DLOOP_VECTOR));
+            MPL_malloc(vec_len * sizeof(DLOOP_VECTOR), MPL_MEM_DATATYPE);
         /* --BEGIN ERROR HANDLING-- */
         if (!dloop_vec) {
             mpi_errno =
@@ -976,7 +976,7 @@ static inline int do_accumulate_op(void *source_buf, int source_count, MPI_Datat
         }
         /* --END ERROR HANDLING-- */
 
-        MPIDU_Segment_pack_vector(segp, first, &last, dloop_vec, &vec_len);
+        MPIR_Segment_pack_vector(segp, first, &last, dloop_vec, &vec_len);
 
         type = dtp->basic_type;
         MPIR_Assert(type != MPI_DATATYPE_NULL);
@@ -1017,7 +1017,7 @@ static inline int do_accumulate_op(void *source_buf, int source_count, MPI_Datat
             accumulated_count += count;
         }
 
-        MPIDU_Segment_free(segp);
+        MPIR_Segment_free(segp);
         MPL_free(dloop_vec);
     }
 
@@ -1159,7 +1159,7 @@ static inline int fill_ranks_in_win_grp(MPIR_Win * win_ptr, MPIR_Group * group_p
     MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_FILL_RANKS_IN_WIN_GRP);
 
     MPIR_CHKLMEM_MALLOC(ranks_in_grp, int *, group_ptr->size * sizeof(int),
-                        mpi_errno, "ranks_in_grp");
+                        mpi_errno, "ranks_in_grp", MPL_MEM_RMA);
     for (i = 0; i < group_ptr->size; i++)
         ranks_in_grp[i] = i;
 
@@ -1247,4 +1247,4 @@ static inline void MPIDI_CH3_ExtPkt_Gaccum_get_stream(MPIDI_CH3_Pkt_flags_t flag
     MPIDI_CH3_ExtPkt_Accum_get_stream(flags, is_derived_dt, ext_hdr_ptr, stream_offset);
 }
 
-#endif /* MPID_RMA_H_INCLUDED */
+#endif /* MPIDRMA_H_INCLUDED */

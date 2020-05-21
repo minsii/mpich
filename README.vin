@@ -28,6 +28,7 @@ information on bug fixes and new releases.
 10. Multiple Fortran compiler support
 11. ABI Compatibility
 12. Capability Sets
+13. Threads
 
 
 -------------------------------------------------------------------------
@@ -43,7 +44,8 @@ shared memory), Hydra process management) of MPICH up and running.
 
     - REQUIRED: This tar file mpich-%VERSION%.tar.gz
 
-    - REQUIRED: A C compiler (gcc is sufficient)
+    - REQUIRED: A C compiler (C99 support is required. See
+      https://wiki.mpich.org/mpich/index.php/Shifting_toward_C99)
 
     - OPTIONAL: A C++ compiler, if C++ applications are to be used
       (g++, etc.). If you do not require support for C++ applications,
@@ -265,11 +267,8 @@ the application, including the mpiexec command used, and the host
 file. If possible, please try to reproduce the error with a smaller
 application or benchmark and send that along in your bug report.
 
-4. If you have found a bug in MPICH, we request that you report it at
-our bug tracking system:
-(https://trac.mpich.org/projects/mpich/newticket). Even if you believe
-you have found a bug, we recommend you sending an email to
-discuss@mpich.org first.
+4. If you have found a bug in MPICH, you can report it on our Github
+page (https://github.com/pmodels/mpich/issues).
 
 
 -------------------------------------------------------------------------
@@ -292,13 +291,7 @@ MPICHLIB_xFLAGS): Setting these flags would result in the MPICH
 library being compiled with these flags.  However, these flags will
 *not* be used by mpicc and friends.
 
-(c) MPICH_MAKE_CFLAGS: Setting these flags would result in MPICH's
-configure tests to not use these flags, but the makefile's to use
-them. This is a temporary hack for certain cases that advanced
-developers might be interested in, but which break existing configure
-tests (e.g., -Werror). These are NOT recommended for regular users.
-
-(d) MPICH_MPICC_CFLAGS, MPICH_MPICC_CPPFLAGS, MPICH_MPICC_LDFLAGS,
+(c) MPICH_MPICC_CFLAGS, MPICH_MPICC_CPPFLAGS, MPICH_MPICC_LDFLAGS,
 MPICH_MPICC_LIBS, and so on for MPICXX, MPIF77 and MPIFORT
 (abbreviated as MPICH_MPIX_FLAGS): These flags do *not* affect the
 compilation of the MPICH library itself, but will be internally used
@@ -316,10 +309,6 @@ by mpicc and friends.
   +--------------------+----------------------+------------------------+
   |                    |                      |                        |
   |  MPICHLIB_xFLAGS   |         Yes          |           No           |
-  |                    |                      |                        |
-  +--------------------+----------------------+------------------------+
-  |                    |                      |                        |
-  | MPICH_MAKE_xFLAGS  |         Yes          |           No           |
   |                    |                      |                        |
   +--------------------+----------------------+------------------------+
   |                    |                      |                        |
@@ -378,20 +367,6 @@ Example 2:
 This will cause the MPICH libraries to be built with -O3, and -O3
 will be included in the mpicc and other MPI wrapper script.
 
-Example 3:
-
-There are certain compiler flags that should not be used with MPICH's
-configure, e.g. gcc's -Werror, which would confuse configure and cause
-certain configure tests to fail to detect the correct system features.
-To use -Werror in building MPICH libraries, you can pass the compiler
-flags during the make step through the Makefile variable
-MPICH_MAKE_CFLAGS as follows:
-
-  make MPICH_MAKE_CFLAGS="-Wall -Werror"
-
-The content of MPICH_MAKE_CFLAGS is appended to the CFLAGS in all
-relevant Makefiles.
-
 -------------------------------------------------------------------------
 
 4. Alternate Channels and Devices
@@ -417,43 +392,6 @@ well as various shared-memory optimizations. To configure MPICH with
 nemesis, you can use the following configure option:
 
   --with-device=ch3:nemesis
-
-The TCP network module gets configured in by default. To specify a
-different network module such as MX, you can use:
-
-  --with-device=ch3:nemesis:mx
-
-If the MX include files and libraries are not in the normal search
-paths, you can specify them with the following options:
-
-  --with-mx-include= and --with-mx-lib=
-
-... or the if lib/ and include/ are in the same directory, you can use
-the following option:
-
-  --with-mx=
-
-If the MX libraries are shared libraries, they need to be in the
-shared library search path. This can be done by adding the path to
-/etc/ld.so.conf, or by setting the LD_LIBRARY_PATH variable in your
-.bashrc (or .tcshrc) file.  It's also possible to set the shared
-library search path in the binary. If you're using gcc, you can do
-this by adding
-
-  LD_LIBRARY_PATH=/path/to/lib
-
-  (and)
-
-  LDFLAGS="-Wl,-rpath -Wl,/path/to/lib"
-
-... as arguments to configure.
-
-By default, MX allows for only eight endpoints per node causing
-ch3:nemesis:mx to give initialization errors with greater than 8
-processes on the same node (this is an MX error and not an inherent
-limitation in the MPICH/Nemesis design). If needed, this can be set
-to a higher number when MX is loaded. We recommend the user to contact
-help@myri.com for details on how to do this.
 
 Shared-memory optimizations are enabled by default to improve
 performance for multi-processor/multi-core platforms. They can be
@@ -925,3 +863,19 @@ the environment variable:
 
 A full list of capability set configuration variables can be found in the
 environment variables README.envvar.
+
+-------------------------------------------------------------------------
+
+13. Threads
+===========
+
+MPICH supports multiple threading packages.  The default is posix
+threads (pthreads), but solaris threads, windows threads and argobots
+are also supported.
+
+To configure mpich to work with argobots threads, use the following
+configure options:
+
+    --with-thread-package=argobots \
+        CFLAGS="-I<path_to_argobots/include>" \
+        LDFLAGS="-L<path_to_argobots/lib>"

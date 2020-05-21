@@ -10,13 +10,18 @@
 #define UCX_PROBE_H_INCLUDED
 
 #include "ucx_impl.h"
-#include "mpidch4.h"
 
-static inline int MPIDI_NM_mpi_improbe(int source,
-                                       int tag,
-                                       MPIR_Comm * comm,
-                                       int context_offset,
-                                       int *flag, MPIR_Request ** message, MPI_Status * status)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_NM_mpi_improbe
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_improbe(int source,
+                                                  int tag,
+                                                  MPIR_Comm * comm,
+                                                  int context_offset,
+                                                  MPIDI_av_entry_t * addr,
+                                                  int *flag, MPIR_Request ** message,
+                                                  MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
     uint64_t ucp_tag, tag_mask;
@@ -33,7 +38,7 @@ static inline int MPIDI_NM_mpi_improbe(int source,
     if (message_h) {
         *flag = 1;
         req = (MPIR_Request *) MPIR_Request_create(MPIR_REQUEST_KIND__MPROBE);
-        MPIR_Assert(req);
+        MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         MPIR_Request_add_ref(req);
         MPIDI_UCX_REQ(req).a.message_handler = message_h;
 
@@ -48,14 +53,23 @@ static inline int MPIDI_NM_mpi_improbe(int source,
     }
     *message = req;
 
+  fn_exit:
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 
-static inline int MPIDI_NM_mpi_iprobe(int source,
-                                      int tag,
-                                      MPIR_Comm * comm,
-                                      int context_offset, int *flag, MPI_Status * status)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_NM_mpi_iprobe
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_iprobe(int source,
+                                                 int tag,
+                                                 MPIR_Comm * comm,
+                                                 int context_offset,
+                                                 MPIDI_av_entry_t * addr, int *flag,
+                                                 MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
     uint64_t ucp_tag, tag_mask;

@@ -10,8 +10,8 @@
  * channel.  Do not include them in the MPID macros.
  */
 
-#if !defined(MPICH_MPIDIMPL_H_INCLUDED)
-#define MPICH_MPIDIMPL_H_INCLUDED
+#ifndef MPIDIMPL_H_INCLUDED
+#define MPIDIMPL_H_INCLUDED
 
 #include "mpichconf.h"
 
@@ -169,14 +169,14 @@ extern MPIDI_Process_t MPIDI_Process;
 	(dt_ptr_) = NULL;						\
 	(dt_contig_out_) = TRUE;					\
         (dt_true_lb_)    = 0;                                           \
-	(data_sz_out_) = (intptr_t) (count_) * MPIDU_Datatype_get_basic_size(datatype_); \
+	(data_sz_out_) = (intptr_t) (count_) * MPIR_Datatype_get_basic_size(datatype_); \
 	MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER, TERSE, (MPL_DBG_FDEST,"basic datatype: dt_contig=%d, dt_sz=%d, data_sz=%" PRIdPTR, \
-			  (dt_contig_out_), MPIDU_Datatype_get_basic_size(datatype_), (data_sz_out_)));\
+			  (dt_contig_out_), MPIR_Datatype_get_basic_size(datatype_), (data_sz_out_)));\
     }									\
     else								\
     {									\
-	MPIDU_Datatype_get_ptr((datatype_), (dt_ptr_));			\
-	(dt_contig_out_) = (dt_ptr_)->is_contig;			\
+	MPIR_Datatype_get_ptr((datatype_), (dt_ptr_));			\
+	MPIR_Datatype_is_contig((datatype_), (&dt_contig_out_));	\
 	(data_sz_out_) = (intptr_t) (count_) * (dt_ptr_)->size;	\
         (dt_true_lb_)    = (dt_ptr_)->true_lb;                          \
 	MPL_DBG_MSG_FMT(MPIDI_CH3_DBG_OTHER, TERSE, (MPL_DBG_FDEST, "user defined datatype: dt_contig=%d, dt_sz=" MPI_AINT_FMT_DEC_SPEC ", data_sz=%" PRIdPTR, \
@@ -298,9 +298,8 @@ extern MPIDI_Process_t MPIDI_Process;
 /* This is the receive request version of MPIDI_Request_create_sreq */
 #define MPIDI_Request_create_rreq(rreq_, mpi_errno_, FAIL_)	\
 {								\
-    (rreq_) = MPIR_Request_create(MPIR_REQUEST_KIND__UNDEFINED);           \
+    (rreq_) = MPIR_Request_create(MPIR_REQUEST_KIND__RECV);           \
     MPIR_Object_set_ref((rreq_), 2);				\
-    (rreq_)->kind = MPIR_REQUEST_KIND__RECV;				\
     (rreq_)->dev.partner_request   = NULL;                         \
 }
 
@@ -308,12 +307,11 @@ extern MPIDI_Process_t MPIDI_Process;
  * returning when a user passed MPI_PROC_NULL */
 #define MPIDI_Request_create_null_rreq(rreq_, mpi_errno_, FAIL_)           \
     do {                                                                   \
-        (rreq_) = MPIR_Request_create(MPIR_REQUEST_KIND__UNDEFINED);               \
+        (rreq_) = MPIR_Request_create(MPIR_REQUEST_KIND__RECV);               \
         if ((rreq_) != NULL) {                                             \
             MPIR_Object_set_ref((rreq_), 1);                               \
             /* MT FIXME should these be handled by MPIR_Request_create? */ \
             MPIR_cc_set(&(rreq_)->cc, 0);                                  \
-            (rreq_)->kind = MPIR_REQUEST_KIND__RECV;                             \
             MPIR_Status_set_procnull(&(rreq_)->status);                    \
         }                                                                  \
         else {                                                             \
@@ -689,7 +687,7 @@ typedef struct MPIDI_VC
     int lpid;
 
     /* The node id of this process, used for topologically aware collectives. */
-    MPID_Node_id_t node_id;
+    int node_id;
 
     /* port name tag */ 
     int port_name_tag; /* added to handle dynamic process mgmt */
@@ -820,7 +818,7 @@ extern MPIDI_CH3U_SRBuf_element_t * MPIDI_CH3U_SRBuf_pool;
         MPIDI_CH3U_SRBuf_element_t * tmp;                               \
         if (!MPIDI_CH3U_SRBuf_pool) {                                   \
              MPIDI_CH3U_SRBuf_pool =                                    \
-                MPL_malloc(sizeof(MPIDI_CH3U_SRBuf_element_t));        \
+                MPL_malloc(sizeof(MPIDI_CH3U_SRBuf_element_t), MPL_MEM_BUFFER); \
             MPIDI_CH3U_SRBuf_pool->next = NULL;                         \
         }                                                               \
         tmp = MPIDI_CH3U_SRBuf_pool;                                    \
@@ -971,10 +969,6 @@ extern char *MPIDI_DBG_parent_str;
     }
 #endif
 
-/* This is used to quote a name in a definition (see FUNCNAME/FCNAME below) */
-#define MPL_QUOTE(A) MPL_QUOTE2(A)
-#define MPL_QUOTE2(A) #A
-
 #ifdef MPICH_DBG_OUTPUT
     void MPIDI_DBG_Print_packet(MPIDI_CH3_Pkt_t *pkt);
 #else
@@ -1113,7 +1107,7 @@ int MPIDI_CH3U_Win_gather_info(void *, MPI_Aint, int, MPIR_Info *, MPIR_Comm *,
 void* MPIDI_CH3I_Alloc_mem(size_t size, MPIR_Info *info_ptr);
 /* fallback to MPL_malloc if channel does not have its own RMA memory allocator */
 #else
-#define MPIDI_CH3I_Alloc_mem(size, info_ptr)    MPL_malloc(size)
+#define MPIDI_CH3I_Alloc_mem(size, info_ptr)    MPL_malloc(size, MPL_MEM_USER)
 #endif
 
 #ifdef MPIDI_CH3I_HAS_FREE_MEM
@@ -1858,4 +1852,4 @@ int MPIDI_CH3_Req_handler_rma_op_complete(MPIR_Request *);
     } while (0)
 
 
-#endif /* !defined(MPICH_MPIDIMPL_H_INCLUDED) */
+#endif /* MPIDIMPL_H_INCLUDED */

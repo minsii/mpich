@@ -15,7 +15,7 @@
 #include "hydra_config.h"
 
 #include "mpl.h"
-#include "mpl_uthash.h"
+#include "uthash.h"
 
 extern char *HYD_dbg_prefix;
 
@@ -144,7 +144,7 @@ extern char *HYD_dbg_prefix;
 
 #define HYD_CONVERT_FALSE_TO_NULL(x)                                    \
     {                                                                   \
-        if (!(x)) {                                                     \
+        if ((x) == NULL) {                                              \
         }                                                               \
         else if (!strcasecmp((x), "none") || !strcasecmp((x), "no") ||  \
                  !strcasecmp((x), "dummy") || !strcasecmp((x), "null") || \
@@ -372,7 +372,7 @@ struct HYD_proxy {
 
     struct HYD_proxy *next;
 
-    MPL_UT_hash_handle hh;
+    UT_hash_handle hh;
 };
 
 /* Global user parameters */
@@ -413,7 +413,7 @@ struct HYD_user_global {
 
 #define HYDU_dump_prefix(fp)                    \
     {                                           \
-        fprintf(fp, "[%s] ", HYD_dbg_prefix);   \
+        fprintf(fp, "[%s] ", HYD_dbg_prefix ? HYD_dbg_prefix : "unknown");   \
         fflush(fp);                             \
     }
 
@@ -461,7 +461,7 @@ struct HYD_user_global {
 
 #define HYDU_ASSERT(x, status)                                  \
     {                                                           \
-        if (!(x)) {                                             \
+        if ((x) == 0) {                                         \
             HYDU_ERR_SETANDJUMP(status, HYD_INTERNAL_ERROR,     \
                                 "assert (%s) failed\n", #x);    \
         }                                                       \
@@ -601,10 +601,10 @@ HYD_status HYDU_sock_read(int fd, void *buf, int maxlen, int *recvd, int *closed
 HYD_status HYDU_sock_write(int fd, const void *buf, int maxlen, int *sent, int *closed,
                            enum HYDU_sock_comm_flag flag);
 HYD_status HYDU_sock_set_nonblock(int fd);
+HYD_status HYDU_sock_set_block(int fd);
 HYD_status HYDU_sock_forward_stdio(int in, int out, int *closed);
 void HYDU_sock_finalize(void);
 HYD_status HYDU_sock_get_iface_ip(char *iface, char **ip);
-HYD_status HYDU_sock_is_local(char *host, int *is_local);
 HYD_status
 HYDU_sock_create_and_listen_portstr(char *iface, char *hostname, char *port_range,
                                     char **port_str,
@@ -618,10 +618,8 @@ HYD_status HYDU_sock_cloexec(int fd);
 
 #define HYDU_MALLOC_OR_JUMP(p, type, size, status)                      \
     {                                                                   \
-        (p) = NULL; /* initialize p in case assert fails */             \
-        HYDU_ASSERT(size, status);                                      \
-        (p) = (type) MPL_malloc((size));                                \
-        if ((p) == NULL)                                                \
+        (p) = (type) MPL_malloc((size), MPL_MEM_PM);                 \
+        if ((size != 0) && ((p) == NULL))                               \
             HYDU_ERR_SETANDJUMP((status), HYD_NO_MEM,                   \
                                 "failed to allocate %d bytes\n",        \
                                 (int) (size));                          \
@@ -629,9 +627,8 @@ HYD_status HYDU_sock_cloexec(int fd);
 
 #define HYDU_REALLOC_OR_JUMP(p, type, size, status)                     \
     {                                                                   \
-        HYDU_ASSERT(size, status);                                      \
-        (p) = (type) MPL_realloc((p),(size));                           \
-        if ((p) == NULL)                                                \
+        (p) = (type) MPL_realloc((p),(size), MPL_MEM_PM);            \
+        if ((size != 0) && ((p) == NULL))                               \
             HYDU_ERR_SETANDJUMP((status), HYD_NO_MEM,                   \
                                 "failed to allocate %d bytes\n",        \
                                 (int) (size));                          \

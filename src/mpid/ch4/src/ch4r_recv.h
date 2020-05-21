@@ -27,10 +27,21 @@ static inline int MPIDI_reply_ssend(MPIR_Request * rreq)
     MPIR_cc_incr(rreq->cc_ptr, &c);
     ack_msg.sreq_ptr = MPIDI_CH4U_REQUEST(rreq, req->rreq.peer_req_ptr);
 
-    mpi_errno = MPIDI_NM_am_isend_reply(MPIDI_CH4U_get_context(MPIDI_CH4U_REQUEST(rreq, tag)),
-                                        MPIDI_CH4U_REQUEST(rreq, rank),
-                                        MPIDI_CH4U_SSEND_ACK, &ack_msg, sizeof(ack_msg),
-                                        NULL, 0, MPI_DATATYPE_NULL, rreq);
+#ifndef MPIDI_CH4_DIRECT_NETMOD
+    if (MPIDI_CH4I_REQUEST(rreq, is_local))
+        mpi_errno =
+            MPIDI_SHM_am_isend_reply(MPIDI_CH4U_REQUEST(rreq, context_id),
+                                     MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_SSEND_ACK, &ack_msg,
+                                     sizeof(ack_msg), NULL, 0, MPI_DATATYPE_NULL, rreq);
+    else
+#endif
+    {
+        mpi_errno =
+            MPIDI_NM_am_isend_reply(MPIDI_CH4U_REQUEST(rreq, context_id),
+                                    MPIDI_CH4U_REQUEST(rreq, rank), MPIDI_CH4U_SSEND_ACK, &ack_msg,
+                                    sizeof(ack_msg), NULL, 0, MPI_DATATYPE_NULL, rreq);
+    }
+
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
   fn_exit:
@@ -48,36 +59,34 @@ static inline int MPIDI_reply_ssend(MPIR_Request * rreq)
 static inline int MPIDI_handle_unexp_mrecv(MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
-    uint64_t msg_tag;
     size_t message_sz;
     MPI_Aint last;
     int dt_contig;
     MPI_Aint dt_true_lb;
     MPIR_Datatype *dt_ptr;
     size_t data_sz, dt_sz;
-    MPID_Segment *segment_ptr;
+    MPIR_Segment *segment_ptr;
     void *buf;
-    int count;
+    MPI_Aint count;
     MPI_Datatype datatype;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_HANDLE_UNEXP_MRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_HANDLE_UNEXP_MRECV);
 
-    msg_tag = MPIDI_CH4U_REQUEST(rreq, tag);
     rreq->status.MPI_SOURCE = MPIDI_CH4U_REQUEST(rreq, rank);
-    rreq->status.MPI_TAG = MPIDI_CH4U_get_tag(msg_tag);
+    rreq->status.MPI_TAG = MPIDI_CH4U_REQUEST(rreq, tag);
 
     buf = MPIDI_CH4U_REQUEST(rreq, req->rreq.mrcv_buffer);
     count = MPIDI_CH4U_REQUEST(rreq, req->rreq.mrcv_count);
     datatype = MPIDI_CH4U_REQUEST(rreq, req->rreq.mrcv_datatype);
 
     message_sz = MPIDI_CH4U_REQUEST(rreq, count);
-    MPID_Datatype_get_size_macro(datatype, dt_sz);
+    MPIR_Datatype_get_size_macro(datatype, dt_sz);
+    MPIR_ERR_CHKANDJUMP(dt_sz == 0, mpi_errno, MPI_ERR_OTHER, "**dtype");
 
     if (message_sz > count * dt_sz) {
         rreq->status.MPI_ERROR = MPI_ERR_TRUNCATE;
-    }
-    else {
+    } else {
         rreq->status.MPI_ERROR = MPI_SUCCESS;
         count = message_sz / dt_sz;
     }
@@ -86,22 +95,21 @@ static inline int MPIDI_handle_unexp_mrecv(MPIR_Request * rreq)
     MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
 
     if (!dt_contig) {
-        segment_ptr = MPIDU_Segment_alloc();
+        segment_ptr = MPIR_Segment_alloc();
         MPIR_ERR_CHKANDJUMP1(segment_ptr == NULL, mpi_errno,
-                             MPI_ERR_OTHER, "**nomem", "**nomem %s", "Recv MPIDU_Segment_alloc");
-        MPIDU_Segment_init(buf, count, datatype, segment_ptr, 0);
+                             MPI_ERR_OTHER, "**nomem", "**nomem %s", "Recv MPIR_Segment_alloc");
+        MPIR_Segment_init(buf, count, datatype, segment_ptr);
 
         last = count * dt_sz;
-        MPIDU_Segment_unpack(segment_ptr, 0, &last, MPIDI_CH4U_REQUEST(rreq, buffer));
-        MPIDU_Segment_free(segment_ptr);
+        MPIR_Segment_unpack(segment_ptr, 0, &last, MPIDI_CH4U_REQUEST(rreq, buffer));
+        MPIR_Segment_free(segment_ptr);
         if (last != (MPI_Aint) (count * dt_sz)) {
             mpi_errno = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
                                              __FUNCTION__, __LINE__,
                                              MPI_ERR_TYPE, "**dtypemismatch", 0);
             rreq->status.MPI_ERROR = mpi_errno;
         }
-    }
-    else {
+    } else {
         MPIR_Memcpy((char *) buf + dt_true_lb, MPIDI_CH4U_REQUEST(rreq, buffer), data_sz);
     }
 

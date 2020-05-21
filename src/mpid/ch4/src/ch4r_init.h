@@ -18,7 +18,7 @@
 #include "ch4r_rma_target_callbacks.h"
 #include "ch4r_rma_origin_callbacks.h"
 #include "mpidig.h"
-#include "mpl_uthash.h"
+#include "uthash.h"
 
 #undef FUNCNAME
 #define FUNCNAME MPIDI_CH4U_init_comm
@@ -43,6 +43,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_init_comm(MPIR_Comm * comm)
     if (unlikely(MPIDI_CH4_Global.is_ch4u_initialized &&
                  (comm == MPIR_Process.comm_world || comm == MPIR_Process.comm_self)))
         goto fn_exit;
+    if (MPIR_CONTEXT_READ_FIELD(DYNAMIC_PROC, comm->recvcontext_id))
+        goto fn_exit;
 
     comm_idx = MPIDI_CH4U_get_context_index(comm->recvcontext_id);
     subcomm_type = MPIR_CONTEXT_READ_FIELD(SUBCOMM, comm->recvcontext_id);
@@ -57,10 +59,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_init_comm(MPIR_Comm * comm)
     uelist = MPIDI_CH4U_context_id_to_uelist(comm->context_id);
     if (*uelist) {
         MPIDI_CH4U_rreq_t *curr, *tmp;
-        MPL_DL_FOREACH_SAFE(*uelist, curr, tmp) {
-            MPL_DL_DELETE(*uelist, curr);
+        DL_FOREACH_SAFE(*uelist, curr, tmp) {
+            DL_DELETE(*uelist, curr);
             MPIR_Comm_add_ref(comm);    /* +1 for each entry in unexp_list */
-            MPL_DL_APPEND(MPIDI_CH4U_COMM(comm, unexp_list), curr);
+            DL_APPEND(MPIDI_CH4U_COMM(comm, unexp_list), curr);
         }
         *uelist = NULL;
     }
@@ -81,6 +83,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_destroy_comm(MPIR_Comm * comm)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH4U_DESTROY_COMM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH4U_DESTROY_COMM);
 
+    if (MPIR_CONTEXT_READ_FIELD(DYNAMIC_PROC, comm->recvcontext_id))
+        goto fn_exit;
     comm_idx = MPIDI_CH4U_get_context_index(comm->recvcontext_id);
     subcomm_type = MPIR_CONTEXT_READ_FIELD(SUBCOMM, comm->recvcontext_id);
     is_localcomm = MPIR_CONTEXT_READ_FIELD(IS_LOCALCOMM, comm->recvcontext_id);
@@ -89,7 +93,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_destroy_comm(MPIR_Comm * comm)
     MPIR_Assert(is_localcomm <= 1);
     MPIR_Assert(MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] != NULL);
 
-    if (MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[subcomm_type]) {
+    if (MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]) {
         MPIR_Assert(MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]->dev.
                     ch4.ch4u.posted_list == NULL);
         MPIR_Assert(MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]->dev.
@@ -97,7 +101,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_destroy_comm(MPIR_Comm * comm)
     }
     MPIDI_CH4_Global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = NULL;
 
-
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH4U_DESTROY_COMM);
     return mpi_errno;
 }
@@ -111,7 +115,7 @@ MPL_STATIC_INLINE_PREFIX void *MPIDI_CH4U_mpi_alloc_mem(size_t size, MPIR_Info *
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_CH4U_MPI_ALLOC_MEM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_CH4U_MPI_ALLOC_MEM);
     void *p;
-    p = MPL_malloc(size);
+    p = MPL_malloc(size, MPL_MEM_USER);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH4U_MPI_ALLOC_MEM);
     return p;
 }
@@ -134,7 +138,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4U_mpi_free_mem(void *ptr)
 #define FUNCNAME MPIDIU_update_node_map
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDIU_update_node_map(int avtid, int size, MPID_Node_id_t node_map[])
+static inline int MPIDIU_update_node_map(int avtid, int size, int node_map[])
 {
     int i;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIU_UPDATE_NODE_MAP);
