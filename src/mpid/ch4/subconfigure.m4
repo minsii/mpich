@@ -238,44 +238,55 @@ fi
 
 AC_ARG_ENABLE(ch4-direct,
     [--enable-ch4-direct
+       (Deprecated in favor of ch4-shmmods. The deprecated netmod option
+       equals to `--with-ch4-shmmods=none`; the deprecated auto option
+       equals to `--with-ch4-shmmods=<list of shmmods>`)
        Defines the direct communication routine used in CH4 device
        level:
          netmod     - Directly transfer data through the chosen netmode
          auto       - The CH4 device controls whether transfer data through netmod
                       or through shared memory based on locality
-    ],,enable_ch4_direct=default)
+    ],,)
 
 # setup shared memory submodules
 AC_ARG_WITH(ch4-shmmods,
-    [  --with-ch4-shmmods@<:@=ARG@:>@ Specify the shared memory submodules for MPICH/CH4.
+    [  --with-ch4-shmmods@<:@=ARG@:>@ Specify the shared memory submodules (shmmods) in CH4.
                           Valid options are:
-                          posix_only   - Only enable POSIX SHM (default)
-                          xpmem        - Enable XPMEM SHM for partial communication paths and use
-                                         POSIX SHM as fallback for others
-                          gpu          - Enable GPU SHM for partial communication paths and use
-                                         POSIX SHM as fallback for others
+                          none         - Disable all shmmods and directly transfer
+                                         data through the chosen netmode
+                          comma separated list of shmmods (e.g., posix,xpmem,gpu):
+                              posix        - Enable POSIX
+                              xpmem        - Enable XPMEM IPC, also require POSIX
+                              gpu          - Enable GPU IPC, also require POSIX
+                          auto         - Enable shmmods based on system status. If the OFI
+                                         netmod is chosen, we try to enable all available
+                                         shmmods; if the UCX netmod is chosen, we disable
+                                         all shmmods (default).
                  ],
                  [with_ch4_shmmods=$withval],
-                 [with_ch4_shmmods=posix_only])
-# shmmod0,shmmod1,... format
-# (posix is always enabled thus ch4_shm is not checked in posix module)
-ch4_shm="`echo $with_ch4_shmmods | sed -e 's/,/ /g'`"
-export ch4_shm
+                 [with_ch4_shmmods=auto])
 
-# setup default direct communication routine
-if test "${enable_ch4_direct}" = "default" ; then
-    # ucx can only choose direct netmod because it does not handle any_src
-    # receive when both nemod and shared memory are used.
-    if test "${ch4_netmods}" = "ucx" ; then
+enable_ch4_direct=auto
+if test "${with_ch4_shmmods}" = "auto"; then
+    # translate auto shmmods and setup direct communication routine
+    # based on the chosen netmod
+    if test "${ch4_netmods}" = "ucx"; then
+        # ucx can only choose direct netmod because it does not handle any_src
+        # receive when both nemod and shared memory are used.
+        with_ch4_shmmods=none
         enable_ch4_direct=netmod
     else
         enable_ch4_direct=auto
     fi
+elif test "${with_ch4_shmmods}" = "none"; then
+    # if all shmmods are disabled, turn on direct netmod
+    enable_ch4_direct=netmod
 fi
 
-if test "$enable_ch4_direct" != "auto" -a "$enable_ch4_direct" != "netmod"; then
-    AC_MSG_ERROR([Direct comunication option ${enable_ch4_direct} is unknown])
-fi
+# shmmod0,shmmod1,... format
+# (posix is always enabled thus ch4_shm is not checked in posix module)
+ch4_shm="`echo $with_ch4_shmmods | sed -e 's/,/ /g'`"
+export ch4_shm
 
 if test "$enable_ch4_direct" = "auto" ; then
     # This variable can be set either when CH4 controls the data transfer routine
