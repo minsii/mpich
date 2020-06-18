@@ -410,6 +410,23 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_CONST_datatype_check_contig_size_lb(MPI_Data
     }
 }
 
+#define MPIDI_OFI_CALL2(FUNC1,FUNC2,STR)                                     \
+    do {                                                    \
+        MPID_THREAD_CS_ENTER(POBJ,MPIDI_OFI_THREAD_FI_MUTEX);   \
+        FUNC1;\
+        ssize_t _ret = FUNC2;                                \
+        MPID_THREAD_CS_EXIT(POBJ,MPIDI_OFI_THREAD_FI_MUTEX);    \
+        MPIDI_OFI_ERR(_ret<0,                       \
+                              mpi_errno,                    \
+                              MPI_ERR_OTHER,                \
+                              "**ofid_"#STR,                \
+                              "**ofid_"#STR" %s %d %s %s",  \
+                              __SHORT_FILE__,               \
+                              __LINE__,                     \
+                              FCNAME,                       \
+                              fi_strerror(-_ret));          \
+    } while (0)
+
 #undef FUNCNAME
 #define FUNCNAME MPIDI_OFI_do_put
 #undef FCNAME
@@ -442,15 +459,31 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_PUT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_PUT);
-
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_OFI_do_put\n", 5);
+#endif
     MPIDI_CH4U_RMA_OP_CHECK_SYNC(target_rank, win);
     if (unlikely(target_rank == MPI_PROC_NULL))
         goto null_op_exit;
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_OFI_do_put\n", 6);
+#endif
+
+#ifdef ENABLE_CONST_DTYPE_DECODE
     MPIDI_CONST_datatype_check_contig_size_lb(target_datatype, target_count, &target_contig,
                                               &target_bytes, &target_true_lb);
     MPIDI_CONST_datatype_check_contig_size_lb(origin_datatype, origin_count, &origin_contig,
                                               &origin_bytes, &origin_true_lb);
+#else
+    MPIDI_Datatype_check_contig_size_lb(target_datatype, target_count, target_contig, target_bytes,
+                                        target_true_lb);
+    MPIDI_Datatype_check_contig_size_lb(origin_datatype, origin_count, origin_contig, origin_bytes,
+                                        origin_true_lb);
+#endif
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_OFI_do_put\n", 7);
+#endif
 
     MPIR_ERR_CHKANDJUMP((origin_bytes != target_bytes), mpi_errno, MPI_ERR_SIZE, "**rmasize");
 
@@ -465,8 +498,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
                                    (char *) win->base + offset, target_count, target_datatype);
         goto null_op_exit;
     }
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_OFI_do_put\n", 8);
+#endif
 
     if (origin_contig && target_contig && (origin_bytes <= MPIDI_Global.max_buffered_write)) {
+#ifdef ENABLE_INSTR_DEBUG
+        printf("%d MPIDI_OFI_do_put\n", 9);
+#endif
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_win_cntr_incr(win),
                               fi_inject_write(MPIDI_OFI_WIN(win).ep,
                                               (char *) origin_addr + origin_true_lb, target_bytes,
@@ -479,6 +518,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
                               rdma_inject_write);
         goto null_op_exit;
     } else if (origin_contig && target_contig) {
+#ifdef ENABLE_INSTR_DEBUG
+        printf("%d MPIDI_OFI_do_put\n", 9);
+#endif
         MPIDI_OFI_INIT_SIGNAL_REQUEST(win, sigreq, &flags);
         offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
         msg.desc = NULL;
@@ -494,6 +536,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         riov.addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
         riov.len = target_bytes;
         riov.key = MPIDI_OFI_winfo_mr_key(win, target_rank);
+#ifdef ENABLE_INSTR_DEBUG
+        printf("msg.addr=0x%lx, riov.addr=%p, riov.key=0x%lx\n", msg.addr, riov.addr, riov.key);
+        printf("%d MPIDI_OFI_do_put\n", 10);
+#endif
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_writemsg(MPIDI_OFI_WIN(win).ep, &msg, flags), rdma_write);
         goto fn_exit;
@@ -549,8 +595,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_writemsg(ep, &msg, flags), rdma_write);
     }
-
   fn_exit:
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_OFI_do_put\n", 11);
+#endif
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_PUT);
     return mpi_errno;
   fn_fail:

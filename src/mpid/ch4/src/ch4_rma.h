@@ -30,12 +30,20 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_unsafe(const void *origin_addr,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PUT_UNSAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PUT_UNSAFE);
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPIDI_put_unsafe %d\n", 3);
+#endif
+
     if (unlikely(target_rank == MPI_PROC_NULL)) {
         mpi_errno = MPI_SUCCESS;
         goto fn_exit;
     }
 
     av = MPIDIU_comm_rank_to_av(win->comm_ptr, target_rank);
+
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPIDI_put_unsafe %d\n", 4);
+#endif
 #ifdef MPIDI_CH4_DIRECT_NETMOD
     mpi_errno = MPIDI_NM_mpi_put(origin_addr, origin_count, origin_datatype,
                                  target_rank, target_disp, target_count, target_datatype, win, av);
@@ -539,7 +547,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_safe(const void *origin_addr,
     int mpi_errno = MPI_SUCCESS, cs_acq = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PUT_SAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PUT_SAFE);
-
+#ifdef ENABLE_INSTR_DEBUG
+    printf("%d MPIDI_put_safe\n", 2);
+#endif
     MPID_THREAD_SAFE_BEGIN(VNI, MPIDI_CH4_Global.vni_lock, cs_acq);
 
     if (!cs_acq) {

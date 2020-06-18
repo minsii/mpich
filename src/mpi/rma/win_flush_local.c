@@ -64,6 +64,9 @@ int MPI_Win_flush_local(int rank, MPI_Win win)
     MPIR_Win *win_ptr = NULL;
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_WIN_FLUSH_LOCAL);
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 0);
+#endif
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
@@ -106,6 +109,9 @@ int MPI_Win_flush_local(int rank, MPI_Win win)
 #endif /* HAVE_ERROR_CHECKING */
 
     /* ... body of routine ...  */
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 1);
+#endif
 
     mpi_errno = MPID_Win_flush_local(rank, win_ptr);
     if (mpi_errno != MPI_SUCCESS)

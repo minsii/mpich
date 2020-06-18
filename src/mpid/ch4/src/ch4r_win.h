@@ -1845,11 +1845,17 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4R_mpi_win_flush_local(int rank, MPIR_Win *
     if (rank == MPI_PROC_NULL)
         goto fn_exit;
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 2);
+#endif
     /* Ensure op local completion in netmod and shmmod */
     mpi_errno = MPIDI_NM_rma_target_local_cmpl_hook(rank, win);
     if (mpi_errno != MPI_SUCCESS)
         MPIR_ERR_POP(mpi_errno);
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 3);
+#endif
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     mpi_errno = MPIDI_SHM_rma_target_local_cmpl_hook(rank, win);
     if (mpi_errno != MPI_SUCCESS)
@@ -1865,13 +1871,18 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4R_mpi_win_flush_local(int rank, MPIR_Win *
         if (MPIDI_CH4U_WIN(win, sync).access_epoch_type == MPIDI_CH4U_EPOTYPE_LOCK)
             MPIDI_CH4U_EPOCH_CHECK_TARGET_LOCK(target_ptr, mpi_errno, goto fn_fail);
     }
-
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 4);
+#endif
     do {
         MPID_THREAD_CS_EXIT(VNI, MPIDI_CH4_Global.vni_lock);
         MPIDI_CH4R_PROGRESS();
         MPID_THREAD_CS_ENTER(VNI, MPIDI_CH4_Global.vni_lock);
     } while (target_ptr && MPIR_cc_get(target_ptr->local_cmpl_cnts) != 0);
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Win_flush_local %d\n", 5);
+#endif
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH4R_MPI_WIN_FLUSH_LOCAL);
     return mpi_errno;
