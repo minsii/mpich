@@ -66,6 +66,11 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
             int target_count, MPI_Datatype target_datatype, MPI_Win win)
 {
     int mpi_errno = MPI_SUCCESS;
+
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Put %d\n", 0);
+#endif
+
     MPIR_Win *win_ptr = NULL;
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_PUT);
 
@@ -141,11 +146,15 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
 
     /* ... body of routine ...  */
 
+#ifdef ENABLE_INSTR_DEBUG
+    printf("MPI_Put %d\n", 1);
+#endif
+#ifndef ENABLE_SMALL_PUT
     mpi_errno = MPID_Put(origin_addr, origin_count, origin_datatype,
                          target_rank, target_disp, target_count, target_datatype, win_ptr);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
-
+#endif
     /* ... end of body of routine ... */
 
   fn_exit:
