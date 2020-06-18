@@ -209,8 +209,7 @@ static inline int MPIDI_NM_mpi_get(void *origin_addr,
         return MPIDI_CH4U_mpi_get(origin_addr, origin_count, origin_datatype,
                                   target_rank, target_disp, target_count, target_datatype, win);
 
-    MPIDI_CH4U_EPOCH_CHECK_SYNC(win, mpi_errno, goto fn_fail);
-    MPIDI_CH4U_EPOCH_OP_REFENCE(win);
+    MPIDI_CH4U_RMA_OP_CHECK_SYNC(target_rank, win);
 
     /* Check target sync status for any target_rank except PROC_NULL. */
     if (target_rank == MPI_PROC_NULL)
