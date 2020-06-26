@@ -300,6 +300,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
                 MPIDIG_WIN(win, info_args).disable_shm_accumulate = true;
             else
                 MPIDIG_WIN(win, info_args).disable_shm_accumulate = false;
+        } else if (is_init && !strcmp(curr_ptr->key, "symm_attach")) {
+            if (!strcmp(curr_ptr->value, "true"))
+                MPIDIG_WIN(win, info_args).symm_attach = true;
+            else
+                MPIDIG_WIN(win, info_args).symm_attach = false;
         }
       next:
         curr_ptr = curr_ptr->next;
@@ -405,6 +410,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_init(MPI_Aint length, int disp_unit, MPI
     MPIDIG_WIN(win, info_args).accumulate_noncontig_dtype = true;
     MPIDIG_WIN(win, info_args).accumulate_max_bytes = -1;
     MPIDIG_WIN(win, info_args).disable_shm_accumulate = false;
+    MPIDIG_WIN(win, info_args).symm_attach = false;
 
     if ((info != NULL) && ((int *) info != (int *) MPI_INFO_NULL)) {
         mpi_errno = MPIDIG_win_set_info(win, info, TRUE /* is_init */);
@@ -996,6 +1002,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_get_info(MPIR_Win * win, MPIR_Info *
         mpi_errno = MPIR_Info_set_impl(*info_p_p, "disable_shm_accumulate", "true");
     else
         mpi_errno = MPIR_Info_set_impl(*info_p_p, "disable_shm_accumulate", "false");
+    if (MPI_SUCCESS != mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    if (MPIDIG_WIN(win, info_args).symm_attach)
+        mpi_errno = MPIR_Info_set_impl(*info_p_p, "symm_attach", "true");
+    else
+        mpi_errno = MPIR_Info_set_impl(*info_p_p, "symm_attach", "false");
     if (MPI_SUCCESS != mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
