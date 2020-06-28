@@ -55,6 +55,9 @@
         }                                       \
     } while (0)
 
+#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)   \
+    (!MPIDI_OFI_ENABLE_MR_SCALABLE && win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
+
 MPL_STATIC_INLINE_PREFIX uint32_t MPIDI_OFI_winfo_disp_unit(MPIR_Win * win, int rank)
 {
     uint32_t ret;
@@ -644,7 +647,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_PUT);
     int mpi_errno = MPI_SUCCESS;
 
-    if (!MPIDI_OFI_ENABLE_RMA) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_put(origin_addr, origin_count, origin_datatype, target_rank,
                                    target_disp, target_count, target_datatype, win);
         goto fn_exit;
@@ -824,7 +827,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_GET);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_GET);
 
-    if (!MPIDI_OFI_ENABLE_RMA) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_get(origin_addr, origin_count, origin_datatype, target_rank,
                                    target_disp, target_count, target_datatype, win);
         goto fn_exit;
@@ -859,7 +862,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rput(const void *origin_addr,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_RPUT);
     int mpi_errno = MPI_SUCCESS;
 
-    if (!MPIDI_OFI_ENABLE_RMA) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_rput(origin_addr, origin_count, origin_datatype, target_rank,
                                     target_disp, target_count, target_datatype, win, request);
         goto fn_exit;
@@ -909,7 +912,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_compare_and_swap(const void *origin_ad
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr, datatype,
                                                 target_rank, target_disp, win);
         goto fn_exit;
@@ -1353,7 +1357,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_raccumulate(const void *origin_addr,
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_raccumulate(origin_addr, origin_count, origin_datatype, target_rank,
                                            target_disp, target_count, target_datatype, op, win,
                                            request);
@@ -1403,7 +1408,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rget_accumulate(const void *origin_add
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_rget_accumulate(origin_addr, origin_count, origin_datatype,
                                                result_addr, result_count, result_datatype,
                                                target_rank, target_disp, target_count,
@@ -1454,7 +1460,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_fetch_and_op(origin_addr, result_addr, datatype, target_rank,
                                             target_disp, op, win);
         goto fn_exit;
@@ -1557,7 +1564,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rget(void *origin_addr,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_RGET);
     int mpi_errno = MPI_SUCCESS;
 
-    if (!MPIDI_OFI_ENABLE_RMA) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_rget(origin_addr, origin_count, origin_datatype, target_rank,
                                     target_disp, target_count, target_datatype, win, request);
         goto fn_exit;
@@ -1604,7 +1611,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get_accumulate(const void *origin_addr
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_get_accumulate(origin_addr, origin_count, origin_datatype,
                                               result_addr, result_count, result_datatype,
                                               target_rank, target_disp, target_count,
@@ -1648,7 +1656,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_accumulate(const void *origin_addr,
             * via network thus we can safely use network-based atomics. */
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
-           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
+           !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS ||
+           MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
         mpi_errno = MPIDIG_mpi_accumulate(origin_addr, origin_count, origin_datatype, target_rank,
                                           target_disp, target_count, target_datatype, op, win);
         goto fn_exit;
