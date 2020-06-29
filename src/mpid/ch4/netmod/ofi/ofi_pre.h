@@ -159,6 +159,18 @@ typedef struct {
     uintptr_t base;
 } MPIDI_OFI_win_targetinfo_t;
 
+/* Stores per-rank information for dynamic window */
+typedef struct {
+    uint64_t mr_key;
+    size_t size;
+    uintptr_t base;
+} MPIDI_OFI_dwin_target_mem_t;
+
+typedef struct {
+    void *base;
+    struct fid_mr *mr;
+} MPIDI_OFI_dwin_mem_t;
+
 typedef struct {
     struct fid_mr *mr;
     uint64_t mr_key;
@@ -172,6 +184,9 @@ typedef struct {
     uint64_t win_id;
     struct MPIDI_OFI_win_request *syncQ;
     MPIDI_OFI_win_targetinfo_t *winfo;
+
+    MPL_gavl_tree_t *dwin_target_mems;  /* attached memory regions on all remote processes */
+    MPL_gavl_tree_t dwin_mems;  /* locally attached memory regions */
 
     /* Accumulate related info. The struct internally uses MPIDI_OFI_DT_SIZES
      * defined in ofi_types.h to allocate the max_count array. The struct

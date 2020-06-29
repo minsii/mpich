@@ -1167,6 +1167,42 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate_shared_hook(MPIR_Win * wi
 }
 
 #undef FUNCNAME
+#define FUNCNAME MPIDI_OFI_close_mr
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_close_mr(void *obj)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_CLOSE_MR);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_CLOSE_MR);
+
+    /* Close local MR and free cached buffer */
+    MPIDI_OFI_dwin_mem_t *dwin_mem = (MPIDI_OFI_dwin_mem_t *) obj;
+    if (dwin_mem->mr)
+        fi_close(&dwin_mem->mr->fid);
+
+    MPL_free(obj);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_CLOSE_MR);
+    return;
+}
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_OFI_delete_target_mem
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_delete_target_mem(void *obj)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DELETE_TARGET_MEM);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DELETE_TARGET_MEM);
+
+    /* Free cached buffer for remote MR */
+    MPL_free(obj);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DELETE_TARGET_MEM);
+    return;
+}
+
+#undef FUNCNAME
 #define FUNCNAME MPIDI_NM_mpi_win_create_dynamic_hook
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
@@ -1176,6 +1212,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_dynamic_hook(MPIR_Win * win
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
+
+    MPIR_CHKPMEM_DECL(1);
 
     /* This hook is called by CH4 generic call after CH4 initialization */
     if (MPIDI_OFI_ENABLE_RMA) {
@@ -1191,12 +1229,36 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_dynamic_hook(MPIR_Win * win
         mpi_errno = MPIDI_OFI_win_allgather(win, win->base, win->disp_unit);
         if (mpi_errno != MPI_SUCCESS)
             MPIR_ERR_POP(mpi_errno);
+
+        /* Initialize memory region storage for basic MR mode */
+        if (!MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDI_CH4U_WIN(win, info_args).symm_attach) {
+            /* Initialize AVL tree for local registered region */
+            int mpl_err = MPL_SUCCESS;
+            mpl_err = MPL_gavl_tree_create(MPIDI_OFI_close_mr, &MPIDI_OFI_WIN(win).dwin_mems);
+            MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER,
+                                "**mpl_gavl_create");
+
+            /* Initialize AVL trees for remote registered region */
+            MPIR_CHKPMEM_MALLOC(MPIDI_OFI_WIN(win).dwin_target_mems, MPL_gavl_tree_t *,
+                                sizeof(MPL_gavl_tree_t) * win->comm_ptr->local_size, mpi_errno,
+                                "AVL tree for remote dynamic win memory regions", MPL_MEM_RMA);
+
+            int i;
+            for (i = 0; i < win->comm_ptr->local_size; i++) {
+                mpl_err = MPL_gavl_tree_create(MPIDI_OFI_delete_target_mem,
+                                               &MPIDI_OFI_WIN(win).dwin_target_mems[i]);
+                MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER,
+                                    "**mpl_gavl_create");
+            }
+        }
     }
 
+    MPIR_CHKPMEM_COMMIT();
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
     return mpi_errno;
   fn_fail:
+    MPIR_CHKPMEM_REAP();
     goto fn_exit;
 }
 
@@ -1210,10 +1272,84 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
 
-    /* Do nothing */
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
+    MPIR_Comm *comm_ptr = win->comm_ptr;
+    MPIDI_OFI_dwin_mem_t *mem;
+    MPIDI_OFI_dwin_target_mem_t *target_mems;
+    int mpl_err = MPL_SUCCESS, i;
 
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
+
+    if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
+        !MPIDI_CH4U_WIN(win, info_args).symm_attach)
+        goto fn_exit;
+
+    MPIR_CHKPMEM_DECL(1);
+    MPIR_CHKLMEM_DECL(1);
+
+    MPIR_CHKPMEM_MALLOC(mem, MPIDI_OFI_dwin_mem_t *, sizeof(MPIDI_OFI_dwin_mem_t),
+                        mpi_errno, "dynamic win memory region", MPL_MEM_RMA);
+
+    MPIDI_OFI_CALL(fi_mr_reg(MPIDI_Global.domain,       /* In:  Domain Object       */
+                             base,      /* In:  Lower memory address */
+                             size,      /* In:  Length              */
+                             FI_REMOTE_READ | FI_REMOTE_WRITE,  /* In:  Expose MR for read  */
+                             0ULL,      /* In:  offset(not used)    */
+                             0ULL,      /* In:  requested key       */
+                             0ULL,      /* In:  flags               */
+                             &mem->mr,  /* Out: memregion object    */
+                             NULL), mr_reg);    /* In:  context             */
+
+    mem->base = base;
+
+    /* Local MR is searched only at win_detach */
+    mpl_err = MPL_gavl_tree_insert(MPIDI_OFI_WIN(win).dwin_mems, (const void *) base, size, mem);
+    MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**mpl_gavl_insert");
+
+    MPIR_CHKLMEM_MALLOC(target_mems, MPIDI_OFI_dwin_target_mem_t *,
+                        sizeof(MPIDI_OFI_dwin_target_mem_t) * comm_ptr->local_size,
+                        mpi_errno, "temp buffer for dynamic win remote memory regions",
+                        MPL_MEM_RMA);
+
+    /* Exchange remote MR across all processes because "symm_attach" info ensures
+     * that all processes collectively call attach. */
+    target_mems[comm_ptr->rank].mr_key = fi_mr_key(mem->mr);
+    target_mems[comm_ptr->rank].base = (uintptr_t) base;
+    target_mems[comm_ptr->rank].size = size;
+    mpi_errno = MPIR_Allgather(MPI_IN_PLACE, 0,
+                               MPI_DATATYPE_NULL,
+                               target_mems, sizeof(MPIDI_OFI_dwin_target_mem_t), MPI_BYTE,
+                               comm_ptr, &errflag);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    /* Insert each remote MR which will be searched when issuing an RMA operation
+     * and deleted at win_detach or win_free */
+    for (i = 0; i < comm_ptr->local_size; i++) {
+        MPIDI_OFI_dwin_target_mem_t *target_mem =
+            MPL_malloc(sizeof(MPIDI_OFI_dwin_target_mem_t), MPL_MEM_RMA);
+        MPIR_Assert(target_mem);
+
+        /* TODO: can we omit base and size? */
+        target_mem->base = target_mems[i].base;
+        target_mem->size = target_mems[i].size;
+        target_mem->mr_key = target_mems[i].mr_key;
+
+        mpl_err = MPL_gavl_tree_insert(MPIDI_OFI_WIN(win).dwin_target_mems[i],
+                                       (const void *) target_mems[i].base,
+                                       (uintptr_t) target_mems[i].size, target_mem);
+        MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**mpl_gavl_insert");
+    }
+
+    MPIR_CHKPMEM_COMMIT();
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
+    MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
+  fn_fail:
+    MPIR_CHKPMEM_REAP();
+    goto fn_exit;
 }
 
 #undef FUNCNAME
@@ -1223,13 +1359,50 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const void *base)
 {
     int mpi_errno = MPI_SUCCESS;
+    MPIR_Errflag_t errflag = MPIR_ERR_NONE;
+    MPIR_Comm *comm_ptr = win->comm_ptr;
+    const void **target_bases;
+    int mpl_err = MPL_SUCCESS, i;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
 
-    /* Do nothing */
+    if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
+        !MPIDI_CH4U_WIN(win, info_args).symm_attach)
+        goto fn_exit;
 
+    MPIR_CHKLMEM_DECL(1);
+
+    /* Search and delete local MR */
+    mpl_err = MPL_gavl_tree_delete_base(MPIDI_OFI_WIN(win).dwin_mems, (const void *) base);
+    MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**mpl_gavl_delete");
+
+    /* Notify remote processes to delete their local cached MR key */
+    MPIR_CHKLMEM_MALLOC(target_bases, const void **,
+                        sizeof(const void *) * comm_ptr->local_size,
+                        mpi_errno, "temp buffer for dynamic win remote memory regions",
+                        MPL_MEM_RMA);
+
+    /* Exchange remote MR across all processes because "symm_attach" info ensures
+     * that all processes collectively call detach. */
+    target_bases[comm_ptr->rank] = (const void *) base;
+    mpi_errno = MPIR_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                               target_bases, sizeof(const void *), MPI_BYTE, comm_ptr, &errflag);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
+
+    /* Search and delete each remote MR */
+    for (i = 0; i < comm_ptr->local_size; i++) {
+        mpl_err = MPL_gavl_tree_delete_base(MPIDI_OFI_WIN(win).dwin_target_mems, target_bases[i]);
+        MPIR_ERR_CHKANDJUMP(mpl_err != MPL_SUCCESS, mpi_errno, MPI_ERR_OTHER, "**mpl_gavl_delete");
+    }
+
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
+    MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 #undef FUNCNAME
@@ -1268,6 +1441,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free_hook(MPIR_Win * win)
         }
         MPL_free(MPIDI_OFI_WIN(win).acc_hint);
         MPIDI_OFI_WIN(win).acc_hint = NULL;
+
+        /* Free cached MRs for dynamic window */
+        if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC &&
+            !MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDI_CH4U_WIN(win, info_args).symm_attach) {
+            int i;
+            for (i = 0; i < win->comm_ptr->local_size; i++)
+                MPL_gavl_tree_free(MPIDI_OFI_WIN(win).dwin_target_mems[i]);
+            MPL_free(MPIDI_OFI_WIN(win).dwin_target_mems);
+            MPL_gavl_tree_free(MPIDI_OFI_WIN(win).dwin_mems);
+        }
     }
     /* This hook is called by CH4 generic call before CH4 finalization */
 
