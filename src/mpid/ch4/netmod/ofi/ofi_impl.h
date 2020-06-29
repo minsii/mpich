@@ -292,6 +292,21 @@ MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_winfo_mr_key(MPIR_Win * w, int rank)
         return MPIDI_OFI_WIN(w).winfo[rank].mr_key;
 }
 
+MPL_STATIC_INLINE_PREFIX uint64_t MPIDI_OFI_dwin_mr_key(MPIR_Win * w,
+                                                        void *addr, size_t size, int rank)
+{
+    if (MPIDI_OFI_ENABLE_MR_SCALABLE)
+        return MPIDI_OFI_WIN(w).mr_key;
+    else {
+        void *target_mem = NULL;
+        MPL_gavl_tree_search(MPIDI_OFI_WIN(w).dwin_target_mems[rank],
+                             (const void *) addr, size, &target_mem);
+        /* The user ensures that the region has already been attached before any RMA call */
+        MPIR_Assert(target_mem);
+        return ((MPIDI_OFI_dwin_target_mem_t *) target_mem)->mr_key;
+    }
+}
+
 MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_cntr_incr(MPIR_Win * win)
 {
     (*MPIDI_OFI_WIN(win).issued_cntr)++;

@@ -55,8 +55,23 @@
         }                                       \
     } while (0)
 
+/* Native RMA over dynamic window can be supported only when the provider
+ * allows to register the entire address space. If BASIC MR mode is set, it means
+ * it is not allowed; in libfabric 1.5+ it is decided by FI_MR_ALLOCATED.
+ * However, if FI_MR_ALLOCATED is not set (or SCALABLE MR), we have to try
+ * fi_mr_reg with NULL and check the return code. To simplify this logic,
+ * we always disable OFI path for dynamic window in the baseline.*/
 #define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)   \
     (!MPIDI_OFI_ENABLE_MR_SCALABLE && win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
+
+#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH
+/* Only permit native RMA for PUT for now */
+#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT(win)   \
+    (!MPIDI_OFI_ENABLE_MR_SCALABLE && !MPIDIG_WIN(win, info_args).symm_attach &&   \
+        win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
+#else
+#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA
+#endif
 
 MPL_STATIC_INLINE_PREFIX uint32_t MPIDI_OFI_winfo_disp_unit(MPIR_Win * win, int rank)
 {
@@ -515,6 +530,20 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
     printf("%d MPIDI_OFI_do_put\n", 8);
 #endif
 
+    uint64_t mr_key;
+    uint64_t addr;
+#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH   /* Do not support native RMA over dynamic window if symm_attach is not on */
+    if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {
+        addr = (uint64_t) (target_disp + MPI_BOTTOM);
+        mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
+    } else
+#endif
+    {
+        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank) + target_true_lb;
+        addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
+        mr_key = MPIDI_OFI_winfo_mr_key(win, target_rank);
+    }
+
     if (origin_contig && target_contig && (origin_bytes <= MPIDI_OFI_global.max_buffered_write)) {
 #ifdef ENABLE_INSTR_DEBUG
         printf("%d MPIDI_OFI_do_put\n", 9);
@@ -522,12 +551,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_win_cntr_incr(win),
                               fi_inject_write(MPIDI_OFI_WIN(win).ep,
                                               (char *) origin_addr + origin_true_lb, target_bytes,
-                                              MPIDI_OFI_av_to_phys(av),
-                                              (uint64_t) MPIDI_OFI_winfo_base(win, target_rank)
-                                              + target_disp * MPIDI_OFI_winfo_disp_unit(win,
-                                                                                        target_rank)
-                                              + target_true_lb, MPIDI_OFI_winfo_mr_key(win,
-                                                                                       target_rank)),
+                                              MPIDI_OFI_av_to_phys(av), addr, mr_key),
                               rdma_inject_write);
         goto null_op_exit;
     } else if (origin_contig && target_contig) {
@@ -535,7 +559,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         printf("%d MPIDI_OFI_do_put\n", 9);
 #endif
         MPIDI_OFI_INIT_SIGNAL_REQUEST(win, sigreq, &flags);
-        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
         msg.desc = NULL;
         msg.addr = MPIDI_OFI_av_to_phys(av);
         msg.context = NULL;
@@ -546,9 +569,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         msg.rma_iov_count = 1;
         iov.iov_base = (char *) origin_addr + origin_true_lb;
         iov.iov_len = target_bytes;
-        riov.addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
+        riov.addr = addr;
         riov.len = target_bytes;
-        riov.key = MPIDI_OFI_winfo_mr_key(win, target_rank);
+        riov.key = mr_key;
 #ifdef ENABLE_INSTR_DEBUG
         printf("msg.addr=0x%lx, riov.addr=%p, riov.key=0x%lx\n", msg.addr, riov.addr, riov.key);
         printf("%d MPIDI_OFI_do_put\n", 10);
@@ -647,7 +670,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_PUT);
     int mpi_errno = MPI_SUCCESS;
 
-    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT(win)) {
         mpi_errno = MPIDIG_mpi_put(origin_addr, origin_count, origin_datatype, target_rank,
                                    target_disp, target_count, target_datatype, win);
         goto fn_exit;
