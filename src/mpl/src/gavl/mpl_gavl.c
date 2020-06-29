@@ -161,6 +161,21 @@ static int gavl_intersect_cmp_func(uintptr_t ustart, uintptr_t len, gavl_tree_no
     return cmp_ret;
 }
 
+static int gavl_base_cmp_func(uintptr_t ustart, gavl_tree_node_s * tnode)
+{
+    int cmp_ret;
+    uintptr_t tstart = tnode->addr;
+
+    if (tstart == ustart)
+        cmp_ret = BUFFER_MATCH;
+    else if (ustart < tstart)
+        cmp_ret = SEARCH_LEFT;
+    else
+        cmp_ret = SEARCH_RIGHT;
+
+    return cmp_ret;
+}
+
 int MPL_gavl_tree_create(void (*free_fn) (void *), MPL_gavl_tree_t * gavl_tree)
 {
     int mpl_err = MPL_SUCCESS;
@@ -348,7 +363,11 @@ int MPL_gavl_tree_delete(MPL_gavl_tree_t gavl_tree, const void *addr, uintptr_t 
             goto fn_exit;
         } else {
             do {
-                int cmp_ret = gavl_intersect_cmp_func((uintptr_t) addr, len, cur_node);
+                int cmp_ret;
+                if (len > 0)    /* check range */
+                    cmp_ret = gavl_intersect_cmp_func((uintptr_t) addr, len, cur_node);
+                else    /* check base address */
+                    cmp_ret = gavl_base_cmp_func((uintptr_t) addr, cur_node);
                 if (cmp_ret == SEARCH_LEFT) {
                     if (cur_node->left != NULL) {
                         STACK_PUSH(node_stack, cur_node);
@@ -458,4 +477,11 @@ int MPL_gavl_tree_delete(MPL_gavl_tree_t gavl_tree, const void *addr, uintptr_t 
     return mpl_err;
   fn_fail:
     goto fn_exit;
+}
+
+/* Delete a tree node based on strictly matched base address. The caller
+ * ensures that the there is one and at most one matched node. */
+int MPL_gavl_tree_delete_base(MPL_gavl_tree_t gavl_tree, const void *addr)
+{
+    return MPL_gavl_tree_delete(gavl_tree, addr, 0);
 }
