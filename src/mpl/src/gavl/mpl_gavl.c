@@ -127,7 +127,7 @@ static void gavl_right_left_rotation(gavl_tree_node_s * parent_ptr, gavl_tree_no
     return;
 }
 
-static int gavl_subset_cmp_func(uintptr_t ustart, uintptr_t len, gavl_tree_node_s * tnode)
+static inline int gavl_subset_cmp_func(uintptr_t ustart, uintptr_t len, gavl_tree_node_s * tnode)
 {
     int cmp_ret;
     uintptr_t uend = ustart + len;
