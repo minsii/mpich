@@ -37,7 +37,8 @@ int MPL_gavl_tree_free(MPL_gavl_tree_t gavl_tree);
 int MPL_gavl_tree_delete(MPL_gavl_tree_t gavl_tree, const void *addr, uintptr_t len);
 int MPL_gavl_tree_delete_base(MPL_gavl_tree_t gavl_tree, const void *addr);
 
-static inline int gavl_subset_cmp_func(uintptr_t ustart, uintptr_t len, gavl_tree_node_s * tnode)
+MPL_STATIC_INLINE_PREFIX int gavl_subset_cmp_func(uintptr_t ustart, uintptr_t len,
+                                                  gavl_tree_node_s * tnode)
 {
     int cmp_ret;
     uintptr_t uend = ustart + len;
@@ -54,8 +55,8 @@ static inline int gavl_subset_cmp_func(uintptr_t ustart, uintptr_t len, gavl_tre
     return cmp_ret;
 }
 
-static inline int MPL_gavl_tree_search(MPL_gavl_tree_t gavl_tree, const void *addr, uintptr_t len,
-                                       void **val)
+MPL_STATIC_INLINE_PREFIX int MPL_gavl_tree_search(MPL_gavl_tree_t gavl_tree, const void *addr,
+                                                  uintptr_t len, void **val)
 {
     int mpl_err = MPL_SUCCESS;
     gavl_tree_node_s *cur_node;
