@@ -599,4 +599,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_CONTEXT_STRUCTS           2   /* Compile time configurable only */
 #endif
 
+#ifdef DISABLE_SCALABLE_MR
+#undef MPIDI_OFI_ENABLE_MR_SCALABLE
+#define MPIDI_OFI_ENABLE_MR_SCALABLE MPIDI_OFI_OFF
+#endif
+
 #endif /* OFI_CAPABILITY_SETS_H_INCLUDED */
