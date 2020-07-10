@@ -455,11 +455,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
                                               int target_count,
                                               MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * av,
-                                              MPIR_Request ** sigreq, bool comm_world_flag)
+                                              MPIR_Request ** sigreq, bool comm_world_flag,
+                                              bool target_abs_flag)
 {
     int rc, mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_win_request_t *req = NULL;
-    size_t offset, omax, tmax, tout, oout;
+    size_t omax, tmax, tout, oout;
     uint64_t flags;
     struct fid_ep *ep = NULL;
     struct fi_msg_rma msg;
@@ -507,11 +508,19 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         goto null_op_exit;
 
     if (target_rank == MPIDI_OFI_win_comm_rank(win, comm_world_flag)) {
-        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
+        uint64_t offset;
+        char *addr;
+        if (target_abs_flag) {
+            addr = (char *) target_disp + target_true_lb;
+        } else {
+            uint64_t offset;
+            offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank)
+                + target_true_lb;
+            addr = (char *) win->base + offset;
+        }
         mpi_errno = MPIR_Localcopy(origin_addr,
                                    origin_count,
-                                   origin_datatype,
-                                   (char *) win->base + offset, target_count, target_datatype);
+                                   origin_datatype, addr, target_count, target_datatype);
         goto null_op_exit;
     }
 #ifdef ENABLE_INSTR_DEBUG
@@ -524,8 +533,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
         addr = (uint64_t) (target_disp + MPI_BOTTOM);
         mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
     } else {
-        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank) + target_true_lb;
-        addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
+        if (target_abs_flag) {
+            /* TODO: need shift win_base in scalable MR */
+            MPIR_Assert(!MPIDI_OFI_ENABLE_MR_SCALABLE);
+            addr = target_disp + target_true_lb;
+        } else {
+            uint64_t offset;
+            offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank) + target_true_lb;
+            addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
+        }
         mr_key = MPIDI_OFI_winfo_mr_key(win, target_rank);
     }
 
@@ -575,8 +591,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
                                                                   MPIDI_Global.max_write,
                                                                   &req, &flags, &ep, sigreq));
 
-    offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
-
     req->event_id = MPIDI_OFI_EVENT_ABORT;
     msg.desc = NULL;
     msg.addr = MPIDI_OFI_av_to_phys(av);
@@ -586,7 +600,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
     MPIDI_OFI_WIN(win).syncQ = req;
     MPIDI_OFI_init_seg_state(&p,
                              origin_addr,
-                             MPIDI_OFI_winfo_base(win, req->target_rank) + offset,
+                             addr,
                              origin_count,
                              target_count,
                              MPIDI_Global.max_write, origin_datatype, target_datatype);
@@ -648,7 +662,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                               MPI_Aint target_disp,
                                               int target_count, MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * av,
-                                              bool comm_world_flag)
+                                              bool comm_world_flag, bool target_abs_flag)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_PUT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_PUT);
@@ -666,7 +680,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                  origin_datatype,
                                  target_rank,
                                  target_disp, target_count, target_datatype, win, av, NULL,
-                                 comm_world_flag);
+                                 comm_world_flag, target_abs_flag);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_PUT);
@@ -887,7 +901,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rput(const void *origin_addr,
                                  origin_datatype,
                                  target_rank,
                                  target_disp, target_count, target_datatype, win, av,
-                                 request, false);
+                                 request, false, false);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_RPUT);

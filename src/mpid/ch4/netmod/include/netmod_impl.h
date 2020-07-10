@@ -832,7 +832,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr, int origi
                                               MPI_Datatype origin_datatype, int target_rank,
                                               MPI_Aint target_disp, int target_count,
                                               MPI_Datatype target_datatype, MPIR_Win * win,
-                                              MPIDI_av_entry_t * addr, bool comm_world_flag)
+                                              MPIDI_av_entry_t * addr, bool comm_world_flag,
+                                              bool target_abs_flag)
 {
     int ret;
 
@@ -841,7 +842,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr, int origi
 
     ret = MPIDI_NM_native_func->mpi_put(origin_addr, origin_count, origin_datatype, target_rank,
                                         target_disp, target_count, target_datatype, win, addr,
-                                        comm_world_flag);
+                                        comm_world_flag, target_abs_flag);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_PUT);
     return ret;

@@ -649,7 +649,7 @@ int MPID_Win_create(void *, MPI_Aint, int, MPIR_Info *, MPIR_Comm *,
 int MPID_Win_free(MPIR_Win **);
 
 int MPID_Put(const void *, int, MPI_Datatype, int, MPI_Aint, int,
-             MPI_Datatype, MPI_Win win_handle, MPIR_Win *);
+             MPI_Datatype, MPI_Win win_handle, MPIR_Win *, bool target_abs_flag);
 int MPID_Get(void *, int, MPI_Datatype, int, MPI_Aint, int,
              MPI_Datatype, MPIR_Win *);
 int MPID_Accumulate(const void *, int, MPI_Datatype, int, MPI_Aint, int,

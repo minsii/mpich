@@ -122,7 +122,8 @@ static inline int MPIDI_NM_mpi_put(const void *origin_addr,
                                    MPI_Aint target_disp,
                                    int target_count, MPI_Datatype target_datatype,
                                    MPIR_Win * win, MPIDI_av_entry_t * addr,
-                                   bool comm_world_flag ATTRIBUTE((unused)))
+                                   bool comm_world_flag ATTRIBUTE((unused)),
+                                   bool target_abs_flag ATTRIBUTE((unused)))
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_NETMOD_UCX_PUT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NETMOD_UCX_PUT);

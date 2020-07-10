@@ -23,7 +23,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_unsafe(const void *origin_addr,
                                               int target_rank,
                                               MPI_Aint target_disp,
                                               int target_count, MPI_Datatype target_datatype,
-                                              MPI_Win win_handle, MPIR_Win * win)
+                                              MPI_Win win_handle, MPIR_Win * win,
+                                              bool target_abs_flag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_av_entry_t *av = NULL;
@@ -54,7 +55,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_unsafe(const void *origin_addr,
 #ifdef MPIDI_CH4_DIRECT_NETMOD
     mpi_errno = MPIDI_NM_mpi_put(origin_addr, origin_count, origin_datatype,
                                  target_rank, target_disp, target_count, target_datatype, win, av,
-                                 comm_world_flag);
+                                 comm_world_flag, target_abs_flag);
 #else
     int r;
 
@@ -64,7 +65,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_unsafe(const void *origin_addr,
     else
         mpi_errno = MPIDI_NM_mpi_put(origin_addr, origin_count, origin_datatype,
                                      target_rank, target_disp, target_count, target_datatype, win,
-                                     av, comm_world_flag);
+                                     av, comm_world_flag, target_abs_flag);
 #endif
     if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_POP(mpi_errno);
@@ -550,7 +551,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_safe(const void *origin_addr,
                                             int target_rank,
                                             MPI_Aint target_disp,
                                             int target_count, MPI_Datatype target_datatype,
-                                            MPI_Win win_handle, MPIR_Win * win)
+                                            MPI_Win win_handle, MPIR_Win * win,
+                                            bool target_abs_flag)
 {
     int mpi_errno = MPI_SUCCESS, cs_acq = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PUT_SAFE);
@@ -570,7 +572,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_safe(const void *origin_addr,
         MPIDI_workq_vni_progress_unsafe();
         mpi_errno = MPIDI_put_unsafe(origin_addr, origin_count, origin_datatype,
                                      target_rank, target_disp, target_count, target_datatype,
-                                     win_handle, win);
+                                     win_handle, win, target_abs_flag);
     }
 
   fn_exit:
@@ -907,7 +909,7 @@ MPL_STATIC_INLINE_PREFIX int MPID_Put(const void *origin_addr,
                                       int target_rank,
                                       MPI_Aint target_disp,
                                       int target_count, MPI_Datatype target_datatype,
-                                      MPI_Win win_handle, MPIR_Win * win)
+                                      MPI_Win win_handle, MPIR_Win * win, bool target_abs_flag)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_PUT);
@@ -915,7 +917,7 @@ MPL_STATIC_INLINE_PREFIX int MPID_Put(const void *origin_addr,
 
     mpi_errno = MPIDI_put_safe(origin_addr, origin_count, origin_datatype,
                                target_rank, target_disp, target_count, target_datatype, win_handle,
-                               win);
+                               win, target_abs_flag);
     if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_POP(mpi_errno);
     }
