@@ -101,7 +101,7 @@ MPIDI_CH4I_API(int, Win_post, MPIR_Group *, int, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_wait, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_test, MPIR_Win *, int *);
 MPIDI_CH4I_API(int, Put, const void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype,
-               MPIR_Win *);
+               MPI_Win, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_set_info, MPIR_Win *, MPIR_Info *);
 MPIDI_CH4I_API(int, Comm_reenable_anysource, MPIR_Comm *, MPIR_Group **);
 MPIDI_CH4I_API(int, Comm_remote_group_failed, MPIR_Comm *, MPIR_Group **);

@@ -453,6 +453,14 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_CONST_datatype_check_contig_size_lb(MPI_Data
     }
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_comm_rank(MPIR_Win * win, bool comm_world_flag)
+{
+    if (comm_world_flag)
+        return MPIR_Process.world_rank;
+    else
+        return win->comm_ptr->rank;
+}
+
 #undef FUNCNAME
 #define FUNCNAME MPIDI_OFI_do_put
 #undef FCNAME
@@ -465,7 +473,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
                                               int target_count,
                                               MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * av,
-                                              MPIR_Request ** sigreq)
+                                              MPIR_Request ** sigreq, bool comm_world_flag)
 {
     int rc, mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_win_request_t *req = NULL;
@@ -518,7 +526,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
     if (unlikely(origin_bytes == 0))
         goto null_op_exit;
 
-    if (target_rank == win->comm_ptr->rank) {
+    if (target_rank == MPIDI_OFI_win_comm_rank(win, comm_world_flag)) {
         offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
         mpi_errno = MPIR_Localcopy(origin_addr,
                                    origin_count,
@@ -664,7 +672,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                               int target_rank,
                                               MPI_Aint target_disp,
                                               int target_count, MPI_Datatype target_datatype,
-                                              MPIR_Win * win, MPIDI_av_entry_t * av)
+                                              MPIR_Win * win, MPIDI_av_entry_t * av,
+                                              bool comm_world_flag)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_PUT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_PUT);
@@ -680,7 +689,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                  origin_count,
                                  origin_datatype,
                                  target_rank,
-                                 target_disp, target_count, target_datatype, win, av, NULL);
+                                 target_disp, target_count, target_datatype, win, av, NULL,
+                                 comm_world_flag);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_PUT);
@@ -895,7 +905,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rput(const void *origin_addr,
                                  origin_count,
                                  origin_datatype,
                                  target_rank,
-                                 target_disp, target_count, target_datatype, win, av, request);
+                                 target_disp, target_count, target_datatype, win, av,
+                                 request, false);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_RPUT);
