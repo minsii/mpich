@@ -45,6 +45,7 @@ typedef struct MPIR_Process_t {
     MPIR_Request *lw_req;       /* A pre-allocated, always complete request */
     PreDefined_attrs attrs;     /* Predefined attribute values */
     int tag_bits;               /* number of tag bits supported */
+    int world_rank;             /* shortcut of comm_world->rank */
 
 #ifdef HAVE_HWLOC
     hwloc_topology_t hwloc_topology;    /* HWLOC topology */
