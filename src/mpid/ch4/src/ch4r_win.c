@@ -327,6 +327,15 @@ static int win_init(MPI_Aint length, int disp_unit, MPIR_Win ** win_ptr, MPIR_In
     MPIDIG_WIN(win, win_id) = MPIDIG_generate_win_id(comm_ptr);
     MPIDIU_map_set(MPIDI_global.win_map, MPIDIG_WIN(win, win_id), win, MPL_MEM_RMA);
 
+    /* Set comm_direct_intra bit in handle if comm is COMM_WORLD or dup of COMM_WORLD */
+    int comm_compare_result = MPI_UNEQUAL;
+    mpi_errno = MPIR_Comm_compare_impl(comm_ptr, MPIR_Process.comm_world, &comm_compare_result);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    MPIR_Assert(!HANDLE_CHECK_MPI_RESERVE_BIT(win->handle));    /* default should be false */
+    if (comm_compare_result == MPI_CONGRUENT || comm_compare_result == MPI_IDENT)
+        HANDLE_SET_MPI_RESERVE_BIT(win->handle, 1);
+
   fn_exit:
     MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDIG_WIN_INIT);
     return mpi_errno;

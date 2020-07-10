@@ -173,10 +173,19 @@ const char *MPIR_Handle_get_kind_str(int kind);
 #define HANDLE_SET_KIND(a,kind) ((a)|((kind)<<HANDLE_KIND_SHIFT))
 #define HANDLE_IS_BUILTIN(a) (HANDLE_GET_KIND((a)) == HANDLE_KIND_BUILTIN)
 
+/* Reserved 1 bit for MPICH internal use. E.g., comm_direct_intra bit for window.
+ * NOTE: we reserve a single bit for each handle type. For different handle types,
+ * the same bit can be used for different purpose. However, if multiple bits are needed
+ * for the same handle type, we will need change the BIT_MASK and BIT_SHIFT here. */
+#define HANDLE_MPI_RESERVE_BIT_MASK 0x02000000
+#define HANDLE_MPI_RESERVE_BIT_SHIFT 25
+#define HANDLE_SET_MPI_RESERVE_BIT(a,val) do { (a) |= (val) << HANDLE_MPI_RESERVE_BIT_SHIFT; } while (0)
+#define HANDLE_CHECK_MPI_RESERVE_BIT(a) (((a) & HANDLE_MPI_RESERVE_BIT_MASK) ? true : false)
+
 /* For indirect, the remainder of the handle has a block and index within that
  * block */
 #define HANDLE_INDIRECT_SHIFT 12
-#define HANDLE_BLOCK(a) (((a)& 0x03FFF000) >> HANDLE_INDIRECT_SHIFT)
+#define HANDLE_BLOCK(a) (((a)& 0x01FFF000) >> HANDLE_INDIRECT_SHIFT)
 #define HANDLE_BLOCK_INDEX(a) ((a) & 0x00000FFF)
 
 /* Number of blocks is between 1 and 16384 */
@@ -196,7 +205,7 @@ const char *MPIR_Handle_get_kind_str(int kind);
 
 /* For direct, the remainder of the handle is the index into a predefined
    block */
-#define HANDLE_MASK 0x03FFFFFF
+#define HANDLE_MASK 0x01FFFFFF
 #define HANDLE_INDEX(a) ((a)& HANDLE_MASK)
 
 #if defined (MPL_USE_DBG_LOGGING)

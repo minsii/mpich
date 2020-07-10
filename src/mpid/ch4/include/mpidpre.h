@@ -453,7 +453,12 @@ typedef struct {
 
 #define MPIDIG_WIN(win,field)        (((win)->dev.am).field)
 
+typedef enum {
+    MPIDI_WINATTR_DIRECT_INTRA_COMM = 1
+} MPIDI_winattr_bit_t;
+
 typedef unsigned MPIDI_locality_t;
+typedef unsigned MPIDI_winattr_t;       /* bit-vector of zero or multiple integer attributes defined in MPIDI_winattr_bit_t. */
 
 typedef struct MPIDIG_comm_t {
     MPIDIG_rreq_t *posted_list;
