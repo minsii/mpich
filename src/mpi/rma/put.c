@@ -151,7 +151,7 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
 #endif
 #ifndef ENABLE_SMALL_PUT
     mpi_errno = MPID_Put(origin_addr, origin_count, origin_datatype,
-                         target_rank, target_disp, target_count, target_datatype, win_ptr);
+                         target_rank, target_disp, target_count, target_datatype, win, win_ptr);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
 #endif

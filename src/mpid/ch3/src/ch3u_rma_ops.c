@@ -850,7 +850,8 @@ int MPIDI_CH3I_Get_accumulate(const void *origin_addr, int origin_count,
 #define FCNAME MPL_QUOTE(FUNCNAME)
 int MPID_Put(const void *origin_addr, int origin_count, MPI_Datatype
              origin_datatype, int target_rank, MPI_Aint target_disp,
-             int target_count, MPI_Datatype target_datatype, MPIR_Win * win_ptr)
+             int target_count, MPI_Datatype target_datatype, MPI_Win win_handle,
+             MPIR_Win * win_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
