@@ -88,6 +88,17 @@ MPL_STATIC_INLINE_PREFIX int MPIDIU_comm_rank_to_pid(MPIR_Comm * comm, int rank,
 }
 
 #undef FUNCNAME
+#define FUNCNAME MPIDIU_comm_world_rank_to_av
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+MPL_STATIC_INLINE_PREFIX MPIDI_av_entry_t *MPIDIU_comm_world_rank_to_av(int rank)
+{
+    MPIDI_av_entry_t *ret = NULL;
+    ret = &MPIDI_av_table0->table[rank];
+    return ret;
+}
+
+#undef FUNCNAME
 #define FUNCNAME MPIDIU_comm_rank_to_av
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)

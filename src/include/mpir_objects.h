@@ -181,7 +181,11 @@ const char *MPIR_Handle_get_kind_str(int kind);
 /* For indirect, the remainder of the handle has a block and index within that
  * block */
 #define HANDLE_INDIRECT_SHIFT 12
+#ifdef ENABLE_WIN_COMM_WORLD_BIT
+#define HANDLE_BLOCK(a) (((a)& 0x01FFF000) >> HANDLE_INDIRECT_SHIFT)
+#else
 #define HANDLE_BLOCK(a) (((a)& 0x03FFF000) >> HANDLE_INDIRECT_SHIFT)
+#endif
 #define HANDLE_BLOCK_INDEX(a) ((a) & 0x00000FFF)
 
 /* Number of blocks is between 1 and 16384 */
@@ -201,8 +205,18 @@ const char *MPIR_Handle_get_kind_str(int kind);
 
 /* For direct, the remainder of the handle is the index into a predefined
    block */
+#ifdef ENABLE_WIN_COMM_WORLD_BIT
+#define HANDLE_MASK 0x01FFFFFF
+#else
 #define HANDLE_MASK 0x03FFFFFF
+#endif
 #define HANDLE_INDEX(a) ((a)& HANDLE_MASK)
+
+#ifdef ENABLE_WIN_COMM_WORLD_BIT
+#define HANDLE_MPI_RESERVE_BIT_MASK 0x02000000
+#define HANDLE_MPI_RESERVE_BIT_SHIFT 25
+#define HANDLE_MPI_RESERVE_BIT(handle) ((handle&HANDLE_MPI_RESERVE_BIT_MASK)>>HANDLE_MPI_RESERVE_BIT_SHIFT)
+#endif
 
 #if defined (MPL_USE_DBG_LOGGING)
 extern MPL_dbg_class MPIR_DBG_HANDLE;

@@ -436,6 +436,18 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_CH4R_win_init(MPI_Aint length,
     MPIDI_CH4U_WIN(win, win_id) = MPIDI_CH4U_generate_win_id(comm_ptr);
     MPIDI_CH4U_map_set(MPIDI_CH4_Global.win_map, MPIDI_CH4U_WIN(win, win_id), win, MPL_MEM_RMA);
 
+#ifdef ENABLE_WIN_COMM_WORLD_BIT
+    int comm_compare_result = MPI_UNEQUAL;
+    mpi_errno = MPIR_Comm_compare_impl(comm_ptr, MPIR_Process.comm_world, &comm_compare_result);
+    if (mpi_errno != MPI_SUCCESS)
+        MPIR_ERR_POP(mpi_errno);
+
+    if (comm_compare_result == MPI_CONGRUENT || comm_compare_result == MPI_IDENT)
+        win->handle |= (1 << HANDLE_MPI_RESERVE_BIT_SHIFT);
+    else
+        win->handle &= (~HANDLE_MPI_RESERVE_BIT_MASK);
+#endif
+
   fn_exit:
     MPIR_FUNC_VERBOSE_RMA_EXIT(MPID_STATE_MPIDI_CH4R_WIN_INIT);
     return mpi_errno;
