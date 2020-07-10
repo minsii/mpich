@@ -222,7 +222,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_put(const void *origin_addr,
                                               int target_count, MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * addr,
                                               MPIR_Request ** reqptr,
-                                              bool comm_world_flag ATTRIBUTE((unused)))
+                                              bool comm_world_flag ATTRIBUTE((unused)),
+                                              bool target_abs_flag ATTRIBUTE((unused)))
 {
     int mpi_errno = MPI_SUCCESS;
     int target_contig, origin_contig;
@@ -337,7 +338,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                               MPI_Aint target_disp,
                                               int target_count, MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * addr,
-                                              bool comm_world_flag ATTRIBUTE((unused)))
+                                              bool comm_world_flag ATTRIBUTE((unused)),
+                                              bool target_abs_flag ATTRIBUTE((unused)))
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_NETMOD_UCX_PUT);
@@ -353,7 +355,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
     } else {
         mpi_errno = MPIDI_UCX_do_put(origin_addr, origin_count, origin_datatype,
                                      target_rank, target_disp, target_count, target_datatype,
-                                     win, addr, NULL, comm_world_flag);
+                                     win, addr, NULL, comm_world_flag, target_abs_flag);
     }
 #endif
 

@@ -20,7 +20,8 @@ static inline int MPIDI_NM_mpi_put(const void *origin_addr,
                                    MPI_Aint target_disp,
                                    int target_count, MPI_Datatype target_datatype,
                                    MPIR_Win * win, MPIDI_av_entry_t * addr,
-                                   bool comm_world_flag ATTRIBUTE((unused)))
+                                   bool comm_world_flag ATTRIBUTE((unused)),
+                                   bool target_abs_flag ATTRIBUTE((unused)))
 {
     return MPIDIG_mpi_put(origin_addr, origin_count, origin_datatype, target_rank, target_disp,
                           target_count, target_datatype, win);

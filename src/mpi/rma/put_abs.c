@@ -7,77 +7,50 @@
 
 #include "mpiimpl.h"
 
-/* -- Begin Profiling Symbol Block for routine MPI_Put */
+/* -- Begin Profiling Symbol Block for routine MPIX_Put_abs */
 #if defined(HAVE_PRAGMA_WEAK)
-#pragma weak MPI_Put = PMPI_Put
+#pragma weak MPIX_Put_abs = PMPIX_Put_abs
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
-#pragma _HP_SECONDARY_DEF PMPI_Put  MPI_Put
+#pragma _HP_SECONDARY_DEF PMPIX_Put_abs  MPIX_Put_abs
 #elif defined(HAVE_PRAGMA_CRI_DUP)
-#pragma _CRI duplicate MPI_Put as PMPI_Put
+#pragma _CRI duplicate MPIX_Put_abs as PMPIX_Put_abs
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
-            int target_rank, MPI_Aint target_disp, int target_count,
-            MPI_Datatype target_datatype, MPI_Win win) __attribute__ ((weak, alias("PMPI_Put")));
+int MPIX_Put_abs(const void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+                 int target_rank, MPI_Aint target_addr, int target_count,
+                 MPI_Datatype target_datatype, MPI_Win win)
+    __attribute__ ((weak, alias("PMPIX_Put_abs")));
 #endif
 /* -- End Profiling Symbol Block */
 
 /* Define MPICH_MPI_FROM_PMPI if weak symbols are not supported to build
    the MPI routines */
 #ifndef MPICH_MPI_FROM_PMPI
-#undef MPI_Put
-#define MPI_Put PMPI_Put
+#undef MPIX_Put_abs
+#define MPIX_Put_abs PMPIX_Put_abs
 
 #endif
 
 #undef FUNCNAME
-#define FUNCNAME MPI_Put
+#define FUNCNAME MPIX_Put_abs
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-/*@
-   MPI_Put - Put data into a memory window on a remote process
-
-Input Parameters:
-+ origin_addr -initial address of origin buffer (choice)
-. origin_count -number of entries in origin buffer (nonnegative integer)
-. origin_datatype -datatype of each entry in origin buffer (handle)
-. target_rank -rank of target (nonnegative integer)
-. target_disp -displacement from start of window to target buffer (nonnegative integer)
-. target_count -number of entries in target buffer (nonnegative integer)
-. target_datatype -datatype of each entry in target buffer (handle)
-
-- win - window object used for communication (handle)
-
-.N ThreadSafe
-
-.N Fortran
-
-.N Errors
-.N MPI_SUCCESS
-.N MPI_ERR_ARG
-.N MPI_ERR_COUNT
-.N MPI_ERR_RANK
-.N MPI_ERR_TYPE
-.N MPI_ERR_WIN
-
-.seealso: MPI_Rput
-@*/
-int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
-            origin_datatype, int target_rank, MPI_Aint target_disp,
-            int target_count, MPI_Datatype target_datatype, MPI_Win win)
+int MPIX_Put_abs(const void *origin_addr, int origin_count, MPI_Datatype
+                 origin_datatype, int target_rank, MPI_Aint target_addr,
+                 int target_count, MPI_Datatype target_datatype, MPI_Win win)
 {
     int mpi_errno = MPI_SUCCESS;
 
 #ifdef ENABLE_INSTR_DEBUG
-    printf("MPI_Put %d\n", 0);
+    printf("MPIX_Put_abs %d\n", 0);
 #endif
 
     MPIR_Win *win_ptr = NULL;
-    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_PUT);
+    MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIX_PUT_ABS);
 
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(VCI_GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPIR_FUNC_TERSE_RMA_ENTER(MPID_STATE_MPI_PUT);
+    MPIR_FUNC_TERSE_RMA_ENTER(MPID_STATE_MPIX_PUT_ABS);
 
     /* Validate parameters, especially handles needing to be converted */
 #ifdef HAVE_ERROR_CHECKING
@@ -111,7 +84,7 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
             MPIR_ERRTEST_COUNT(target_count, mpi_errno);
             MPIR_ERRTEST_DATATYPE(target_datatype, "target_datatype", mpi_errno);
             if (win_ptr->create_flavor != MPI_WIN_FLAVOR_DYNAMIC)
-                MPIR_ERRTEST_DISP(target_disp, mpi_errno);
+                MPIR_ERRTEST_DISP(target_addr, mpi_errno);
 
             if (HANDLE_GET_KIND(origin_datatype) != HANDLE_KIND_BUILTIN) {
                 MPIR_Datatype *datatype_ptr = NULL;
@@ -147,19 +120,17 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
     /* ... body of routine ...  */
 
 #ifdef ENABLE_INSTR_DEBUG
-    printf("MPI_Put %d\n", 1);
+    printf("MPIX_Put_abs %d\n", 1);
 #endif
-#ifndef ENABLE_SMALL_PUT
     mpi_errno = MPID_Put(origin_addr, origin_count, origin_datatype,
-                         target_rank, target_disp, target_count, target_datatype,
-                         win, win_ptr, false /*target_abs_flag */);
+                         target_rank, target_addr, target_count, target_datatype,
+                         win, win_ptr, true /*target_abs_flag */);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
-#endif
     /* ... end of body of routine ... */
 
   fn_exit:
-    MPIR_FUNC_TERSE_RMA_EXIT(MPID_STATE_MPI_PUT);
+    MPIR_FUNC_TERSE_RMA_EXIT(MPID_STATE_MPIX_PUT_ABS);
     MPID_THREAD_CS_EXIT(VCI_GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
     return mpi_errno;
 
@@ -169,9 +140,9 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
-                                 "**mpi_put", "**mpi_put %p %d %D %d %d %d %D %W", origin_addr,
-                                 origin_count, origin_datatype, target_rank, target_disp,
-                                 target_count, target_datatype, win);
+                                 "**mpix_put_abs", "**mpix_put_abs %p %d %D %d %d %d %D %W",
+                                 origin_addr, origin_count, origin_datatype, target_rank,
+                                 target_addr, target_count, target_datatype, win);
     }
 #endif
     mpi_errno = MPIR_Err_return_win(win_ptr, FCNAME, mpi_errno);
