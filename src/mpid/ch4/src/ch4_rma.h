@@ -40,7 +40,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_put_unsafe(const void *origin_addr,
         goto fn_exit;
     }
 #ifdef ENABLE_WIN_COMM_WORLD_BIT
-    bool comm_world_flag = HANDLE_MPI_RESERVE_BIT(win_handle) == 1 ? true : false;
+    bool comm_world_flag = (win_handle & HANDLE_MPI_RESERVE_BIT_MASK) ? true : false;
 #else
     bool comm_world_flag = false;
 #endif
