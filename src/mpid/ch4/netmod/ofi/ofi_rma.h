@@ -55,13 +55,23 @@
         }                                       \
     } while (0)
 
+/* Native RMA over dynamic window can be supported only when the provider
+ * allows to register the entire address space. If BASIC MR mode is set, it means
+ * it is not allowed; in libfabric 1.5+ it is decided by FI_MR_ALLOCATED.
+ * However, if FI_MR_ALLOCATED is not set (or SCALABLE MR), we have to try
+ * fi_mr_reg with NULL and check the return code. To simplify this logic,
+ * we always disable OFI path for dynamic window in the baseline.*/
+#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)   \
+    (!MPIDI_OFI_ENABLE_MR_SCALABLE && win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
+
+#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH
 /* Only permit native RMA for PUT for now */
 #define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT(win)   \
     (!MPIDI_OFI_ENABLE_MR_SCALABLE && !MPIDI_CH4U_WIN(win, info_args).symm_attach &&   \
         win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
-
-#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)   \
-    (!MPIDI_OFI_ENABLE_MR_SCALABLE && win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
+#else
+#define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA
+#endif
 
 MPL_STATIC_INLINE_PREFIX uint32_t MPIDI_OFI_winfo_disp_unit(MPIR_Win * win, int rank)
 {
@@ -529,10 +539,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
 
     uint64_t mr_key;
     uint64_t addr;
+#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH   /* Do not support native RMA over dynamic window if symm_attach is not on */
     if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {
         addr = (uint64_t) (target_disp + MPI_BOTTOM);
         mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
-    } else {
+    } else
+#endif
+    {
         if (target_abs_flag) {
             /* TODO: need shift win_base in scalable MR */
             MPIR_Assert(!MPIDI_OFI_ENABLE_MR_SCALABLE);
