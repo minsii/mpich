@@ -696,8 +696,8 @@ static inline uintptr_t MPIDIG_win_base_at_target(const MPIR_Win * win)
 #define FUNCNAME MPIDIG_win_cmpl_cnts_incr
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDIG_win_cmpl_cnts_incr(MPIR_Win * win, int target_rank,
-                                             MPIR_cc_t ** local_cmpl_cnts_ptr)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_win_cmpl_cnts_incr(MPIR_Win * win, int target_rank,
+                                                        MPIR_cc_t ** local_cmpl_cnts_ptr)
 {
     int c = 0;
 
@@ -780,7 +780,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_win_remote_acc_cmpl_cnt_decr(MPIR_Win * win
 #define FUNCNAME MPIDIG_win_remote_cmpl_cnt_decr
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDIG_win_remote_cmpl_cnt_decr(MPIR_Win * win, int target_rank)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_win_remote_cmpl_cnt_decr(MPIR_Win * win, int target_rank)
 {
     int c = 0;
 
@@ -806,7 +806,8 @@ static inline void MPIDIG_win_remote_cmpl_cnt_decr(MPIR_Win * win, int target_ra
 #define FUNCNAME MPIDIG_win_check_all_targets_remote_completed
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDIG_win_check_all_targets_remote_completed(MPIR_Win * win, int *allcompleted)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_win_check_all_targets_remote_completed(MPIR_Win * win,
+                                                                            int *allcompleted)
 {
     int rank = 0;
 
@@ -827,7 +828,8 @@ static inline void MPIDIG_win_check_all_targets_remote_completed(MPIR_Win * win,
 #define FUNCNAME MPIDIG_win_check_all_targets_local_completed
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDIG_win_check_all_targets_local_completed(MPIR_Win * win, int *allcompleted)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_win_check_all_targets_local_completed(MPIR_Win * win,
+                                                                           int *allcompleted)
 {
     int rank = 0;
 
@@ -848,9 +850,9 @@ static inline void MPIDIG_win_check_all_targets_local_completed(MPIR_Win * win, 
 #define FUNCNAME MPIDIG_win_check_group_local_completed
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline void MPIDIG_win_check_group_local_completed(MPIR_Win * win,
-                                                          int *ranks_in_win_grp,
-                                                          int grp_siz, int *allcompleted)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_win_check_group_local_completed(MPIR_Win * win,
+                                                                     int *ranks_in_win_grp,
+                                                                     int grp_siz, int *allcompleted)
 {
     int i = 0;
 
