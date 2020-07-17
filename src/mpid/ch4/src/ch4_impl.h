@@ -812,6 +812,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_win_check_all_targets_remote_completed(MPIR
     int rank = 0;
 
     *allcompleted = 1;
+    if (!MPIDIG_WIN(win, targets))
+        return;
+
     MPIDIG_win_target_t *target_ptr = NULL;
     for (rank = 0; rank < win->comm_ptr->local_size; rank++) {
         target_ptr = MPIDIG_win_target_find(win, rank);
@@ -834,6 +837,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_win_check_all_targets_local_completed(MPIR_
     int rank = 0;
 
     *allcompleted = 1;
+    if (!MPIDIG_WIN(win, targets))
+        return;
+
     MPIDIG_win_target_t *target_ptr = NULL;
     for (rank = 0; rank < win->comm_ptr->local_size; rank++) {
         target_ptr = MPIDIG_win_target_find(win, rank);
