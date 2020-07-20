@@ -547,6 +547,32 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
                             mpi_errno, MPI_ERR_OTHER, "**ofi_provider_mismatch");
     }
 
+#ifdef ENABLE_OFI_AUTO_PROGRESS
+    /* Query the default progress support of the matched provider */
+    hints->domain_attr->data_progress = FI_PROGRESS_UNSPEC;
+    hints->domain_attr->control_progress = FI_PROGRESS_UNSPEC;
+    MPIDI_OFI_CALL(fi_getinfo(fi_version, NULL, NULL, 0ULL, hints, &prov), addrinfo);
+    MPIR_ERR_CHKANDJUMP(prov == NULL, mpi_errno, MPI_ERR_OTHER, "**ofid_addrinfo");
+
+    if (rank == 0) {
+        printf("Queried control_progress: %s\n",
+               prov->domain_attr->control_progress == FI_PROGRESS_AUTO ? "AUTO" : "MANUAL");
+        printf("Queried data_progress: %s\n",
+               prov->domain_attr->data_progress == FI_PROGRESS_AUTO ? "AUTO" : "MANUAL");
+
+        if (prov->domain_attr->control_progress != FI_PROGRESS_AUTO ||
+            prov->domain_attr->data_progress != FI_PROGRESS_AUTO) {
+            printf("WARNING: AUTO_PROGRESS is not supported by default."
+                   "Enabling it may cause thread oversubscription!!\n");
+        }
+        fflush(stdout);
+    }
+
+    /* Force AUTO PROGRESS */
+    hints->domain_attr->data_progress = FI_PROGRESS_AUTO;
+    hints->domain_attr->control_progress = FI_PROGRESS_AUTO;
+#endif
+
     MPIDI_OFI_CALL(fi_getinfo(fi_version, NULL, NULL, 0ULL, hints, &prov), addrinfo);
     MPIR_ERR_CHKANDJUMP(prov == NULL, mpi_errno, MPI_ERR_OTHER, "**ofid_addrinfo");
     /* When a specific provider is specified at configure time,
