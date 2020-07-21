@@ -1258,7 +1258,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
 
     if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
         !MPIDIG_WIN(win, info_args).symm_attach)
-        goto fn_exit;
+        goto no_op_exit;
 
     MPIR_CHKPMEM_DECL(1);
     MPIR_CHKLMEM_DECL(1);
@@ -1322,6 +1322,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
     MPIR_CHKLMEM_FREEALL();
     return mpi_errno;
+  no_op_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
+    return mpi_errno;
   fn_fail:
     MPIR_CHKPMEM_REAP();
     goto fn_exit;
@@ -1344,7 +1347,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const 
 
     if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
         !MPIDIG_WIN(win, info_args).symm_attach)
-        goto fn_exit;
+        goto no_op_exit;
 
     MPIR_CHKLMEM_DECL(1);
 
@@ -1375,6 +1378,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
     MPIR_CHKLMEM_FREEALL();
+    return mpi_errno;
+  no_op_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
