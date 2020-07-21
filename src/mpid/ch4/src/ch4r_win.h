@@ -1673,6 +1673,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush(int rank, MPIR_Win * win)
         MPIR_ERR_POP(mpi_errno);
 #endif
 
+#ifdef ENABLE_NM_RMA_AM_PROGRESS_CTRL
+    /* If NM ensures no AM RMA, then skip full progress */
+    if (!MPIDI_NM_rma_am_progress_cond_check(win))
+        goto fn_exit;
+#endif
+
     /* Ensure completion of AM operations issued to the target.
      * If target object is not created (e.g., when all operations issued
      * to the target were via shm and in lockall), we also need trigger
@@ -1718,6 +1724,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local_all(MPIR_Win * win)
     mpi_errno = MPIDI_SHM_rma_win_local_cmpl_hook(win);
     if (mpi_errno != MPI_SUCCESS)
         MPIR_ERR_POP(mpi_errno);
+#endif
+
+#ifdef ENABLE_NM_RMA_AM_PROGRESS_CTRL
+    /* If NM ensures no AM RMA, then skip full progress */
+    if (!MPIDI_NM_rma_am_progress_cond_check(win))
+        goto fn_exit;
 #endif
 
     /* Ensure completion of AM operations */
@@ -1892,6 +1904,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win
         MPIR_ERR_POP(mpi_errno);
 #endif
 
+#ifdef ENABLE_NM_RMA_AM_PROGRESS_CTRL
+    /* If NM ensures no AM RMA, then skip full progress */
+    if (!MPIDI_NM_rma_am_progress_cond_check(win))
+        goto fn_exit;
+#endif
+
     /* Ensure completion of AM operations issued to the target.
      * If target object is not created (e.g., when all operations issued
      * to the target were via shm and in lockall), we also need trigger
@@ -1962,6 +1980,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
     mpi_errno = MPIDI_SHM_rma_win_cmpl_hook(win);
     if (mpi_errno != MPI_SUCCESS)
         MPIR_ERR_POP(mpi_errno);
+#endif
+
+#ifdef ENABLE_NM_RMA_AM_PROGRESS_CTRL
+    /* If NM ensures no AM RMA, then skip full progress */
+    if (!MPIDI_NM_rma_am_progress_cond_check(win))
+        goto fn_exit;
 #endif
 
     /* Ensure completion of AM operations */

@@ -337,6 +337,13 @@ typedef struct {
     MPIDI_OFI_context_t ctx[MPIDI_OFI_MAX_ENDPOINTS];
 #endif
 
+    bool cq_progress_flag;      /* Define whether OFI needs to progress CQ.
+                                 * False by default, becomes true if either of
+                                 * the following conditions is met: (1) outstanding
+                                 * collective is issued, (2) outstanding pt2pt is issued,
+                                 * (3) AM is issued (e.g., at init, finalize, during a
+                                 * window) */
+
     /* Window/RMA Globals */
     void *win_map;
     uint64_t rma_issued_cntr;

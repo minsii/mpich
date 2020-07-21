@@ -190,6 +190,8 @@ typedef struct {
      * defined in ofi_types.h to allocate the max_count array. The struct
      * size is unknown when we load ofi_pre.h, thus we only set a pointer here. */
     struct MPIDI_OFI_win_acc_hint *acc_hint;
+
+    bool am_progress_flag;
 } MPIDI_OFI_win_t;
 
 typedef struct {

@@ -67,6 +67,7 @@ typedef int (*MPIDI_NM_rma_win_cmpl_hook_t) (MPIR_Win * win);
 typedef int (*MPIDI_NM_rma_win_local_cmpl_hook_t) (MPIR_Win * win);
 typedef int (*MPIDI_NM_rma_target_cmpl_hook_t) (int rank, MPIR_Win * win);
 typedef int (*MPIDI_NM_rma_target_local_cmpl_hook_t) (int rank, MPIR_Win * win);
+typedef bool(*MPIDI_NM_rma_am_progress_cond_check_t) (MPIR_Win * win);
 typedef void (*MPIDI_NM_am_request_init_t) (MPIR_Request * req);
 typedef void (*MPIDI_NM_am_request_finalize_t) (MPIR_Request * req);
 typedef void (*MPIDI_NM_prequest_free_hook_t) (MPIR_Request * req);
@@ -503,6 +504,7 @@ typedef struct MPIDI_NM_funcs {
     MPIDI_NM_rma_win_local_cmpl_hook_t rma_win_local_cmpl_hook;
     MPIDI_NM_rma_target_cmpl_hook_t rma_target_cmpl_hook;
     MPIDI_NM_rma_target_local_cmpl_hook_t rma_target_local_cmpl_hook;
+    MPIDI_NM_rma_am_progress_cond_check_t rma_am_progress_cond_check;
     /* Request allocation routines */
     MPIDI_NM_am_request_init_t am_request_init;
     MPIDI_NM_am_request_finalize_t am_request_finalize;
@@ -736,6 +738,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_rma_target_cmpl_hook(int rank,
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_rma_target_local_cmpl_hook(int rank,
                                                                  MPIR_Win *
                                                                  win) MPL_STATIC_INLINE_SUFFIX;
+MPL_STATIC_INLINE_PREFIX bool MPIDI_NM_rma_am_progress_cond_check(MPIR_Win *
+                                                                  win) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX void MPIDI_NM_am_request_init(MPIR_Request * req) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX void MPIDI_NM_am_request_finalize(MPIR_Request *
                                                            req) MPL_STATIC_INLINE_SUFFIX;

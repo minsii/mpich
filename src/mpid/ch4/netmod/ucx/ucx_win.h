@@ -695,4 +695,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_rma_target_local_cmpl_hook(int rank, MPIR_
   fn_fail:
     goto fn_exit;
 }
+
+MPL_STATIC_INLINE_PREFIX bool MPIDI_NM_rma_am_progress_cond_check(MPIR_Win * win)
+{
+    return true;        /* always make netmod progress for RMA AM */
+}
 #endif /* UCX_WIN_H_INCLUDED */

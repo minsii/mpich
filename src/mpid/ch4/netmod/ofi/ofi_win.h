@@ -203,6 +203,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_allgather(MPIR_Win * win, void *base,
 
     MPIDI_OFI_load_acc_hint(win);
 
+    /* FIXME: assume always no AM for debug */
+    MPIDI_OFI_WIN(win).am_progress_flag = false;
+
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_WIN_ALLGATHER);
     return mpi_errno;
@@ -1509,5 +1512,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_rma_target_local_cmpl_hook(int rank ATTRIB
     return mpi_errno;
   fn_fail:
     goto fn_exit;
+}
+
+MPL_STATIC_INLINE_PREFIX bool MPIDI_NM_rma_am_progress_cond_check(MPIR_Win * win)
+{
+    /* FALSE if all possible RMA/AMO are supported by netmod */
+    return MPIDI_OFI_WIN(win).am_progress_flag;
 }
 #endif /* OFI_WIN_H_INCLUDED */
