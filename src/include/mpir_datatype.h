@@ -21,6 +21,11 @@
 #define MPIR_DATATYPE_PREALLOC 8
 #endif /* MPIR_DATATYPE_PREALLOC */
 
+#ifndef MPIR_DATATYPE_PAIRTYPE
+#define MPIR_DATATYPE_PAIRTYPE 5
+
+#define MPIR_DATATYPE_N_PREDEFINED (MPIR_DATATYPE_N_BUILTIN + MPIR_DATATYPE_PAIRTYPE)
+
 /*S
   MPIR_Datatype_contents - Holds envelope and contents data for a given
                            datatype
@@ -149,6 +154,7 @@ struct MPIR_Datatype {
 extern MPIR_Datatype MPIR_Datatype_builtin[MPIR_DATATYPE_N_BUILTIN];
 extern MPIR_Datatype MPIR_Datatype_direct[];
 extern MPIR_Object_alloc_t MPIR_Datatype_mem;
+extern MPI_Datatype MPIR_Datatype_index_to_predefined[MPIR_DATATYPE_N_PREDEFINED];
 
 static inline void MPIR_Datatype_free(MPIR_Datatype * ptr);
 
@@ -497,6 +503,31 @@ static inline int MPIR_Datatype_set_contents(MPIR_Datatype * new_dtp,
     }
 
     return MPI_SUCCESS;
+}
+
+MPL_STATIC_INLINE_PREFIX MPI_Datatype MPIR_Datatype_predefined_get_type(uint32_t index)
+{
+    MPIR_Assert(index < MPIR_DATATYPE_N_PREDEFINED);
+    return MPIR_Datatype_index_to_predefined[index];
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIR_Datatype_predefined_get_index(MPI_Datatype datatype)
+{
+    int index;
+    switch (HANDLE_GET_KIND(datatype)) {
+        case HANDLE_KIND_DIRECT:
+            /* pairtype */
+            index = HANDLE_INDEX(datatype) + MPIR_DATATYPE_N_BUILTIN;
+            MPIR_Assert(index < MPIR_DATATYPE_N_PREDEFINED);
+            break;
+        case HANDLE_KIND_BUILTIN:
+            index = datatype & 0x000000ff;
+            MPIR_Assert(index < MPIR_DATATYPE_N_BUILTIN);
+            break;
+        default:
+            index = MPIR_DATATYPE_N_PREDEFINED; /* invalid index */
+            break;
+    }
 }
 
 /* contents accessor functions */
