@@ -83,8 +83,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_acc_hint(MPIR_Win * win)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_WIN_LOAD_ATOMIC_INFO);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_WIN_LOAD_ATOMIC_INFO);
 
-    if (!MPIDI_OFI_WIN(win).acc_hint)
-        MPIDI_OFI_WIN(win).acc_hint = MPL_malloc(sizeof(MPIDI_OFI_win_acc_hint_t), MPL_MEM_RMA);
+    MPIR_Assert(MPIDI_OFI_DTYPE_SZ >= MPIR_DATATYPE_N_PREDEFINED);
 
     /* TODO: we assume all pes pass the same hint. Allreduce is needed to check
      * the maximal value or the spec must define it as same value on all pes.
@@ -93,9 +92,13 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_acc_hint(MPIR_Win * win)
     /* We translate the atomic op hints to max count allowed for all possible atomics with each
      * datatype. We do not need more specific info (e.g., <datatype, op>, because any process may use
      * the op with accumulate or get_accumulate.*/
-    for (i = 0; i < MPIDI_OFI_DT_SIZES; i++) {
-        MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[i] = 0;
+    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+        MPIDI_OFI_WIN(win).dtypes_max_count[i] = 0;
         bool first_valid_op = true;
+
+        MPI_Datatype dt = MPIR_Datatype_predefined_get_type(i);
+        if (dt == MPI_DATATYPE_NULL)
+            continue;   /* skip disabled datatype */
 
         for (hint_shift = MPIDIG_ACCU_OP_SHIFT_FIRST; hint_shift < MPIDIG_ACCU_OP_SHIFT_LAST;
              hint_shift++) {
@@ -121,11 +124,11 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_acc_hint(MPIR_Win * win)
 
                 /* calculate the minimal max_count. */
                 if (first_valid_op) {
-                    MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[i] = max_count;
+                    MPIDI_OFI_WIN(win).dtypes_max_count[i] = max_count;
                     first_valid_op = false;
                 } else
-                    MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[i] =
-                        MPL_MIN(max_count, MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[i]);
+                    MPIDI_OFI_WIN(win).dtypes_max_count[i] =
+                        MPL_MIN(max_count, MPIDI_OFI_WIN(win).dtypes_max_count[i]);
             }
         }
     }
@@ -529,7 +532,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_init(MPIR_Win * win)
     MPIDI_OFI_index_datatypes();
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_Devwin_t) >= sizeof(MPIDI_OFI_win_t));
-    MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_Devdt_t) >= sizeof(MPIDI_OFI_datatype_t));
 
     memset(&MPIDI_OFI_WIN(win), 0, sizeof(MPIDI_OFI_win_t));
 
@@ -1412,8 +1414,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free_hook(MPIR_Win * win)
             MPIDI_OFI_CALL(fi_close(&MPIDI_OFI_WIN(win).mr->fid), mr_unreg);
         MPL_free(MPIDI_OFI_WIN(win).winfo);
         MPIDI_OFI_WIN(win).winfo = NULL;
-        MPL_free(MPIDI_OFI_WIN(win).acc_hint);
-        MPIDI_OFI_WIN(win).acc_hint = NULL;
 
         /* Free cached MRs for dynamic window */
         if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC &&

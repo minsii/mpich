@@ -133,16 +133,13 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_query_acc_atomic_support(MPI_Datatype dt
                                                                  enum fi_op *fi_op, size_t * count,
                                                                  size_t * dtsize)
 {
-    MPIR_Datatype *dt_ptr;
     int op_index, dt_index;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_QUERY_ACC_ATOMIC_SUPPORT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_QUERY_ACC_ATOMIC_SUPPORT);
 
-    MPIR_Datatype_get_ptr(dt, dt_ptr);
-    MPIR_Assert(dt_ptr != NULL);
-
-    dt_index = MPIDI_OFI_DATATYPE(dt_ptr).index;
+    dt_index = MPIR_Datatype_predefined_get_index(dt);
+    MPIR_Assert(dt_index < MPIR_DATATYPE_N_PREDEFINED);
     op_index = MPIDI_OFI_get_mpi_acc_op_index(op);
     MPIR_Assert(op_index >= 0);
     MPIR_Assert(op_index < MPIDI_OFI_OP_SIZES);
@@ -186,10 +183,10 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_query_acc_atomic_support(MPI_Datatype dt
     /* We use the minimal max_count of local op and any possible remote op as the limit
      * to validate dt_size in later check. We assume the limit should be symmetric on
      * all processes as long as the hint correctly contains the local op.*/
-    MPIR_Assert(*count >= (size_t) MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[dt_index]);
+    MPIR_Assert(*count >= (size_t) MPIDI_OFI_WIN(win).dtypes_max_count[dt_index]);
 
     if (MPIDIG_WIN(win, info_args).accumulate_ops == MPIDIG_ACCU_SAME_OP_NO_OP)
-        *count = (size_t) MPIDI_OFI_WIN(win).acc_hint->dtypes_max_count[dt_index];
+        *count = (size_t) MPIDI_OFI_WIN(win).dtypes_max_count[dt_index];
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_QUERY_ACC_ATOMIC_SUPPORT);
 }

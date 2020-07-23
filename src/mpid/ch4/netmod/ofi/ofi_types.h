@@ -67,16 +67,6 @@
 #endif
 #endif
 
-
-#ifdef HAVE_FORTRAN_BINDING
-#ifdef MPICH_DEFINE_2COMPLEX
-#define MPIDI_OFI_DT_SIZES 63
-#else
-#define MPIDI_OFI_DT_SIZES 61
-#endif
-#else
-#define MPIDI_OFI_DT_SIZES 40
-#endif
 #define MPIDI_OFI_OP_SIZES 15
 
 #define MPIDI_OFI_THREAD_UTIL_MUTEX     MPIDI_OFI_global.mutexes[0].m
@@ -92,7 +82,6 @@
 #define MPIDI_OFI_REQUEST(req,field)       ((req)->dev.ch4.netmod.ofi.field)
 #define MPIDI_OFI_AV(av)                   ((av)->netmod.ofi)
 
-#define MPIDI_OFI_DATATYPE(dt)   ((dt)->dev.netmod.ofi)
 #define MPIDI_OFI_COMM(comm)     ((comm)->dev.ch4.netmod.ofi)
 
 /* Convert the address vector entry to an endpoint index.
@@ -349,7 +338,7 @@ typedef struct {
     uint64_t rma_issued_cntr;
     /* OFI atomics limitation of each pair of <dtype, op> returned by the
      * OFI provider at MPI initialization.*/
-    MPIDI_OFI_atomic_valid_t win_op_table[MPIDI_OFI_DT_SIZES][MPIDI_OFI_OP_SIZES];
+    MPIDI_OFI_atomic_valid_t win_op_table[MPIR_DATATYPE_N_PREDEFINED][MPIDI_OFI_OP_SIZES];
     UT_array *rma_sep_idx_array;        /* Array of available indexes of transmit contexts on sep */
 
     /* Active Message Globals */
@@ -384,10 +373,6 @@ typedef struct {
     MPIDI_OFI_capabilities_t settings;
 #endif
 } MPIDI_OFI_global_t;
-
-typedef struct {
-    uint32_t index;
-} MPIDI_OFI_datatype_t;
 
 typedef struct {
     int16_t type;
@@ -439,15 +424,6 @@ typedef enum MPIDI_OFI_segment_side {
     MPIDI_OFI_SEGMENT_TARGET,
     MPIDI_OFI_SEGMENT_RESULT,
 } MPIDI_OFI_segment_side_t;
-
-typedef struct MPIDI_OFI_win_acc_hint {
-    uint64_t dtypes_max_count[MPIDI_OFI_DT_SIZES];      /* translate CH4 which_accumulate_ops hints to
-                                                         * atomicity support of all OFI datatypes. A datatype
-                                                         * is supported only when all enabled ops are valid atomic
-                                                         * provided by the OFI provider (recored in MPIDI_OFI_global.win_op_table).
-                                                         * Invalid <dtype, op> defined in MPI standard are excluded.
-                                                         * This structure is prepared at window creation time. */
-} MPIDI_OFI_win_acc_hint_t;
 
 typedef struct {
     char pad[MPIDI_REQUEST_HDR_SIZE];

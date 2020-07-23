@@ -400,38 +400,6 @@ static inline int mpi_to_ofi(MPI_Datatype dt, enum fi_datatype *fi_dt, MPI_Op op
     return -1;
 }
 
-static MPI_Datatype mpi_dtypes[] = {
-    MPI_CHAR, MPI_UNSIGNED_CHAR, MPI_SIGNED_CHAR, MPI_BYTE,
-    MPI_WCHAR, MPI_SHORT, MPI_UNSIGNED_SHORT, MPI_INT,
-    MPI_UNSIGNED, MPI_LONG, MPI_UNSIGNED_LONG, MPI_FLOAT,
-    MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_LONG, MPI_UNSIGNED_LONG_LONG,
-    MPI_PACKED, MPI_LB, MPI_UB, MPI_2INT,
-
-    MPI_INT8_T, MPI_INT16_T, MPI_INT32_T,
-    MPI_INT64_T, MPI_UINT8_T, MPI_UINT16_T,
-    MPI_UINT32_T, MPI_UINT64_T, MPI_C_BOOL,
-    MPI_C_FLOAT_COMPLEX, MPI_C_DOUBLE_COMPLEX, MPI_C_LONG_DOUBLE_COMPLEX,
-    /* address/offset/count types */
-    MPI_AINT, MPI_OFFSET, MPI_COUNT,
-    /* Fortran types */
-#ifdef HAVE_FORTRAN_BINDING
-    MPI_COMPLEX, MPI_DOUBLE_COMPLEX, MPI_LOGICAL, MPI_REAL,
-    MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_2INTEGER,
-
-#ifdef MPICH_DEFINE_2COMPLEX
-    MPI_2COMPLEX, MPI_2DOUBLE_COMPLEX,
-#endif
-    MPI_2REAL, MPI_2DOUBLE_PRECISION, MPI_CHARACTER,
-    MPI_REAL4, MPI_REAL8, MPI_REAL16, MPI_COMPLEX8, MPI_COMPLEX16,
-    MPI_COMPLEX32, MPI_INTEGER1, MPI_INTEGER2, MPI_INTEGER4, MPI_INTEGER8,
-    MPI_INTEGER16,
-#endif
-    MPI_FLOAT_INT, MPI_DOUBLE_INT,
-    MPI_LONG_INT, MPI_SHORT_INT,
-    MPI_LONG_DOUBLE_INT,
-    (MPI_Datatype) - 1,
-};
-
 static MPI_Op mpi_ops[] = {
     MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD,
     MPI_LAND, MPI_BAND, MPI_LOR, MPI_BOR,
@@ -475,11 +443,17 @@ static inline void create_dt_map()
      * enabled call fo fi_atomic*** may crash */
     MPIR_Assert(MPIDI_OFI_ENABLE_ATOMICS);
 
-    for (i = 0; i < MPIDI_OFI_DT_SIZES; i++)
+    memset(MPIDI_OFI_global.win_op_table, 0, sizeof(MPIDI_OFI_global.win_op_table));
+
+    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+        MPI_Datatype dt = MPIR_Datatype_predefined_get_type(i);
+        if (dt == MPI_DATATYPE_NULL)
+            continue;   /* skip disabled datatype */
+
         for (j = 0; j < MPIDI_OFI_OP_SIZES; j++) {
             enum fi_datatype fi_dt = (enum fi_datatype) -1;
             enum fi_op fi_op = (enum fi_op) -1;
-            mpi_to_ofi(mpi_dtypes[i], &fi_dt, mpi_ops[j], &fi_op);
+            mpi_to_ofi(dt, &fi_dt, mpi_ops[j], &fi_op);
             MPIR_Assert(fi_dt != (enum fi_datatype) -1);
             MPIR_Assert(fi_op != (enum fi_op) -1);
             _TBL.dt = fi_dt;
@@ -488,7 +462,7 @@ static inline void create_dt_map()
             _TBL.max_atomic_count = 0;
             _TBL.max_fetch_atomic_count = 0;
             _TBL.max_compare_atomic_count = 0;
-            _TBL.mpi_acc_valid = check_mpi_acc_valid(mpi_dtypes[i], mpi_ops[j]);
+            _TBL.mpi_acc_valid = check_mpi_acc_valid(dt, mpi_ops[j]);
             ssize_t ret;
             size_t atomic_count;
 
@@ -500,108 +474,15 @@ static inline void create_dt_map()
                 _TBL.dtsize = dtsize[fi_dt];
             }
         }
-}
-
-static inline void add_index(MPI_Datatype datatype, int *index)
-{
-    MPIR_Datatype *dt_ptr;
-    MPIR_Datatype_get_ptr(datatype, dt_ptr);
-    MPIDI_OFI_DATATYPE(dt_ptr).index = *index;
-    (*index)++;
+    }
 }
 
 void MPIDI_OFI_index_datatypes()
 {
     static bool needs_init = true;
-    int index = 0;
-
-    if (!needs_init)
-        return;
-
-    add_index(MPI_CHAR, &index);
-    add_index(MPI_UNSIGNED_CHAR, &index);
-    add_index(MPI_SIGNED_CHAR, &index);
-    add_index(MPI_BYTE, &index);
-    add_index(MPI_WCHAR, &index);
-    add_index(MPI_SHORT, &index);
-    add_index(MPI_UNSIGNED_SHORT, &index);
-    add_index(MPI_INT, &index);
-    add_index(MPI_UNSIGNED, &index);
-    add_index(MPI_LONG, &index);        /* count=10 */
-    add_index(MPI_UNSIGNED_LONG, &index);
-    add_index(MPI_FLOAT, &index);
-    add_index(MPI_DOUBLE, &index);
-    add_index(MPI_LONG_DOUBLE, &index);
-    add_index(MPI_LONG_LONG, &index);
-    add_index(MPI_UNSIGNED_LONG_LONG, &index);
-    add_index(MPI_PACKED, &index);
-    add_index(MPI_LB, &index);
-    add_index(MPI_UB, &index);
-    add_index(MPI_2INT, &index);        /* count=20 */
-
-    /* C99 types */
-    add_index(MPI_INT8_T, &index);
-    add_index(MPI_INT16_T, &index);
-    add_index(MPI_INT32_T, &index);
-    add_index(MPI_INT64_T, &index);
-    add_index(MPI_UINT8_T, &index);
-    add_index(MPI_UINT16_T, &index);
-    add_index(MPI_UINT32_T, &index);
-    add_index(MPI_UINT64_T, &index);
-    add_index(MPI_C_BOOL, &index);
-    add_index(MPI_C_FLOAT_COMPLEX, &index);     /* count=30 */
-    add_index(MPI_C_DOUBLE_COMPLEX, &index);
-    add_index(MPI_C_LONG_DOUBLE_COMPLEX, &index);
-
-    /* address/offset/count types */
-    add_index(MPI_AINT, &index);
-    add_index(MPI_OFFSET, &index);
-    add_index(MPI_COUNT, &index);       /* count=35 */
-
-    /* Fortran types (count=23) */
-#ifdef HAVE_FORTRAN_BINDING
-    add_index(MPI_COMPLEX, &index);
-    add_index(MPI_DOUBLE_COMPLEX, &index);
-    add_index(MPI_LOGICAL, &index);
-    add_index(MPI_REAL, &index);
-    add_index(MPI_DOUBLE_PRECISION, &index);    /* count=40 */
-    add_index(MPI_INTEGER, &index);
-    add_index(MPI_2INTEGER, &index);
-#ifdef MPICH_DEFINE_2COMPLEX
-    add_index(MPI_2COMPLEX, &index);
-    add_index(MPI_2DOUBLE_COMPLEX, &index);
-#endif
-    add_index(MPI_2REAL, &index);
-    add_index(MPI_2DOUBLE_PRECISION, &index);
-    add_index(MPI_CHARACTER, &index);
-    add_index(MPI_REAL4, &index);
-    add_index(MPI_REAL8, &index);
-    add_index(MPI_REAL16, &index);      /* count=50 */
-    add_index(MPI_COMPLEX8, &index);
-    add_index(MPI_COMPLEX16, &index);
-    add_index(MPI_COMPLEX32, &index);
-    add_index(MPI_INTEGER1, &index);
-    add_index(MPI_INTEGER2, &index);
-    add_index(MPI_INTEGER4, &index);
-    add_index(MPI_INTEGER8, &index);
-
-    if (MPI_INTEGER16 == MPI_DATATYPE_NULL)
-        index++;
-    else
-        add_index(MPI_INTEGER16, &index);
-
-#endif
-    add_index(MPI_FLOAT_INT, &index);
-    add_index(MPI_DOUBLE_INT, &index);  /* count=60 */
-    add_index(MPI_LONG_INT, &index);
-    add_index(MPI_SHORT_INT, &index);
-    add_index(MPI_LONG_DOUBLE_INT, &index);
-
-    /* check if static dt_size is correct */
-    MPIR_Assert(MPIDI_OFI_DT_SIZES == index);
 
     /* do not generate map when atomics are not enabled */
-    if (MPIDI_OFI_ENABLE_ATOMICS)
+    if (MPIDI_OFI_ENABLE_ATOMICS && needs_init)
         create_dt_map();
 
     /* only need to do this once */

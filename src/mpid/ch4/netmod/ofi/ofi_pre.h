@@ -169,6 +169,14 @@ typedef struct {
     struct fid_mr *mr;
 } MPIDI_OFI_dwin_mem_t;
 
+/* FIXME: MPIR_DATATYPE_N_PREDEFINED is not known in pre headers.
+ * This code is a temporary workaround. */
+#ifndef MPIR_DATATYPE_N_PREDEFINED
+#define MPIDI_OFI_DTYPE_SZ 76
+#else
+#define MPIDI_OFI_DTYPE_SZ MPIR_DATATYPE_N_PREDEFINED
+#endif
+
 typedef struct {
     struct fid_mr *mr;
     uint64_t mr_key;
@@ -186,10 +194,14 @@ typedef struct {
     MPL_gavl_tree_t *dwin_target_mems;  /* attached memory regions on all remote processes */
     MPL_gavl_tree_t dwin_mems;  /* locally attached memory regions */
 
-    /* Accumulate related info. The struct internally uses MPIDI_OFI_DT_SIZES
-     * defined in ofi_types.h to allocate the max_count array. The struct
-     * size is unknown when we load ofi_pre.h, thus we only set a pointer here. */
-    struct MPIDI_OFI_win_acc_hint *acc_hint;
+    /* Accumulate related info.
+     * Translate CH4 which_accumulate_ops hints to
+     * atomicity support of all OFI datatypes. A datatype
+     * is supported only when all enabled ops are valid atomic
+     * provided by the OFI provider (recored in MPIDI_OFI_global.win_op_table).
+     * Invalid <dtype, op> defined in MPI standard are excluded.
+     * This structure is prepared at window creation time. */
+    uint64_t dtypes_max_count[MPIDI_OFI_DTYPE_SZ];
 
     bool am_progress_flag;
 } MPIDI_OFI_win_t;
