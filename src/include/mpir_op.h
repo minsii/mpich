@@ -8,6 +8,8 @@
 #ifndef MPIR_OP_H_INCLUDED
 #define MPIR_OP_H_INCLUDED
 
+#include "mpir_pre.h"
+
 /*E
   MPIR_Op_kind - Enumerates types of MPI_Op types
 
@@ -108,7 +110,7 @@ typedef struct MPIR_Op {
      MPID_DEV_OP_DECL
 #endif
 } MPIR_Op;
-#define MPIR_OP_N_BUILTIN 15
+
 extern MPIR_Op MPIR_Op_builtin[MPIR_OP_N_BUILTIN];
 extern MPIR_Op MPIR_Op_direct[];
 extern MPIR_Object_alloc_t MPIR_Op_mem;
@@ -194,4 +196,26 @@ int MPIR_Op_is_commutative(MPI_Op);
 
 int MPIR_Op_create_impl(MPI_User_function * user_fn, int commute, MPI_Op * op);
 void MPIR_Op_free_impl(MPI_Op * op);
+
+MPL_STATIC_INLINE_PREFIX int MPIR_Op_predefined_get_index(MPI_Op op)
+{
+    int op_index;
+    if (op == MPI_OP_NULL)
+        op_index = 0;
+    else
+        op_index = 0x000000FFU & op;
+    return op_index;
+}
+
+MPL_STATIC_INLINE_PREFIX MPI_Op MPIR_Op_predefined_get_op(int index)
+{
+    MPI_Op op;
+    if (index == 0)
+        op = MPI_OP_NULL;
+    else
+        op = (MPI_Op) (0x58000000 | index);
+    return op;
+}
+
+extern const char *MPIR_Op_get_short_name(int index);
 #endif /* MPIR_OP_H_INCLUDED */

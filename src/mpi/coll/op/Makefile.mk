@@ -15,6 +15,7 @@
 mpi_sources +=                     \
     src/mpi/coll/op/op_create.c       \
     src/mpi/coll/op/op_free.c         \
+    src/mpi/coll/op/oputil.c          \
     src/mpi/coll/op/op_commutative.c
 
 mpi_core_sources += \

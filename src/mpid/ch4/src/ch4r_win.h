@@ -46,10 +46,87 @@ enum {
     MPIDIG_SHM_WIN_REQUIRED,
 };
 
-MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_ops_str(const char *str, uint32_t * ops_ptr)
+MPL_STATIC_INLINE_PREFIX int MPIDIG_accu_op_str_to_index(char *token)
+{
+    int shift = MPIR_OP_N_PREDEFINED;   /* invalid index */
+
+    if (!strncmp(token, "max", strlen("max")))
+        shift = MPIR_Op_predefined_get_index(MPI_MAX);
+    else if (!strncmp(token, "min", strlen("min")))
+        shift = MPIR_Op_predefined_get_index(MPI_MIN);
+    else if (!strncmp(token, "sum", strlen("sum")))
+        shift = MPIR_Op_predefined_get_index(MPI_SUM);
+    else if (!strncmp(token, "prod", strlen("prod")))
+        shift = MPIR_Op_predefined_get_index(MPI_PROD);
+    else if (!strncmp(token, "maxloc", strlen("maxloc")))
+        shift = MPIR_Op_predefined_get_index(MPI_MAXLOC);
+    else if (!strncmp(token, "minloc", strlen("minloc")))
+        shift = MPIR_Op_predefined_get_index(MPI_MINLOC);
+    else if (!strncmp(token, "band", strlen("band")))
+        shift = MPIR_Op_predefined_get_index(MPI_BAND);
+    else if (!strncmp(token, "bor", strlen("bor")))
+        shift = MPIR_Op_predefined_get_index(MPI_BOR);
+    else if (!strncmp(token, "bxor", strlen("bxor")))
+        shift = MPIR_Op_predefined_get_index(MPI_BXOR);
+    else if (!strncmp(token, "land", strlen("land")))
+        shift = MPIR_Op_predefined_get_index(MPI_LAND);
+    else if (!strncmp(token, "lor", strlen("lor")))
+        shift = MPIR_Op_predefined_get_index(MPI_LOR);
+    else if (!strncmp(token, "lxor", strlen("lxor")))
+        shift = MPIR_Op_predefined_get_index(MPI_LXOR);
+    else if (!strncmp(token, "replace", strlen("replace")))
+        shift = MPIR_Op_predefined_get_index(MPI_REPLACE);
+    else if (!strncmp(token, "no_op", strlen("no_op")))
+        shift = MPIR_Op_predefined_get_index(MPI_NO_OP);
+    else if (!strncmp(token, "cswap", strlen("cswap")) ||
+             !strncmp(token, "compare_and_swap", strlen("compare_and_swap")))
+        shift = MPIR_Op_predefined_get_index(MPI_OP_NULL);      /* no cswap OP, thus use special OP_NULL */
+    return shift;
+}
+
+MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_op_types_str(MPIR_Win * win,
+                                                                  const char *key, const char *val)
+{
+    /* key=accumulate_op_types:op
+     * val=int:1,long:1,longlong:1,uint:8,ulong:1,ulonglong:1 */
+    char *op_str = (char *) key + strlen("accumulate_op_types:");
+    int op_index = MPIDIG_accu_op_str_to_index(op_str);
+
+    int dtype_idx;
+    char *savePtr = NULL, *subsavePtr = NULL;
+    char *typecount, *type = NULL, *count = NULL;
+    MPI_Datatype dtype;
+
+    typecount = (char *) strtok_r((char *) val, ",", &savePtr);
+    while (typecount != NULL) {
+        type = (char *) strtok_r((char *) typecount, ":", &subsavePtr);
+        dtype = MPIR_Datatype_predefined_search_short_name(type);
+        MPIR_Assert(dtype != MPI_DATATYPE_NULL);
+        dtype_idx = MPIR_Datatype_predefined_get_index(dtype);
+
+        count = (char *) strtok_r(NULL, ":", &subsavePtr);
+        MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][dtype_idx].max_count = atoi(count);
+        MPIDIG_WIN(win, info_args).which_accumulate_ops |= (1 << op_index);
+
+        /* next */
+        typecount = (char *) strtok_r(NULL, ",", &savePtr);
+    }
+}
+
+MPL_STATIC_INLINE_PREFIX void MPIDIG_accu_op_set_all_dtypes(MPIR_Win * win,
+                                                            int op_index, int max_count)
+{
+    int i;
+    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++)
+        MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][i].max_count = max_count;
+}
+
+MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_ops_str(MPIR_Win * win, const char *str,
+                                                             uint32_t * ops_ptr)
 {
     uint32_t ops = 0;
     char *value, *token, *savePtr = NULL;
+    int op_index;
 
     value = (char *) str;
     /* str can never be NULL. */
@@ -58,52 +135,27 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_ops_str(const char *str, ui
     /* handle special value */
     if (!strncmp(value, "none", strlen("none"))) {
         *ops_ptr = 0;
+        for (op_index = 0; op_index < MPIR_OP_N_PREDEFINED; op_index++)
+            MPIDIG_accu_op_set_all_dtypes(win, op_index, 0);
         return;
     } else if (!strncmp(value, "any_op", strlen("any_op"))) {
-        MPIDIG_win_info_accu_op_shift_t op_shift;
         /* add all ops */
-        for (op_shift = MPIDIG_ACCU_OP_SHIFT_FIRST; op_shift < MPIDIG_ACCU_OP_SHIFT_LAST;
-             op_shift++)
-            ops |= (1 << op_shift);
+        for (op_index = 0; op_index < MPIR_OP_N_PREDEFINED; op_index++) {
+            MPIDIG_accu_op_set_all_dtypes(win, op_index, INT_MAX);
+            ops |= (1 << op_index);
+        }
         *ops_ptr = ops;
         return;
     }
 
     token = (char *) strtok_r(value, ",", &savePtr);
     while (token != NULL) {
-
         /* traverse op list (exclude null and last) and add the op if set */
-        if (!strncmp(token, "max", strlen("max")))
-            ops |= (1 << MPIDIG_ACCU_MAX_SHIFT);
-        else if (!strncmp(token, "min", strlen("min")))
-            ops |= (1 << MPIDIG_ACCU_MIN_SHIFT);
-        else if (!strncmp(token, "sum", strlen("sum")))
-            ops |= (1 << MPIDIG_ACCU_SUM_SHIFT);
-        else if (!strncmp(token, "prod", strlen("prod")))
-            ops |= (1 << MPIDIG_ACCU_PROD_SHIFT);
-        else if (!strncmp(token, "maxloc", strlen("maxloc")))
-            ops |= (1 << MPIDIG_ACCU_MAXLOC_SHIFT);
-        else if (!strncmp(token, "minloc", strlen("minloc")))
-            ops |= (1 << MPIDIG_ACCU_MINLOC_SHIFT);
-        else if (!strncmp(token, "band", strlen("band")))
-            ops |= (1 << MPIDIG_ACCU_BAND_SHIFT);
-        else if (!strncmp(token, "bor", strlen("bor")))
-            ops |= (1 << MPIDIG_ACCU_BOR_SHIFT);
-        else if (!strncmp(token, "bxor", strlen("bxor")))
-            ops |= (1 << MPIDIG_ACCU_BXOR_SHIFT);
-        else if (!strncmp(token, "land", strlen("land")))
-            ops |= (1 << MPIDIG_ACCU_LAND_SHIFT);
-        else if (!strncmp(token, "lor", strlen("lor")))
-            ops |= (1 << MPIDIG_ACCU_LOR_SHIFT);
-        else if (!strncmp(token, "lxor", strlen("lxor")))
-            ops |= (1 << MPIDIG_ACCU_LXOR_SHIFT);
-        else if (!strncmp(token, "replace", strlen("replace")))
-            ops |= (1 << MPIDIG_ACCU_REPLACE_SHIFT);
-        else if (!strncmp(token, "no_op", strlen("no_op")))
-            ops |= (1 << MPIDIG_ACCU_NO_OP_SHIFT);
-        else if (!strncmp(token, "cswap", strlen("cswap")) ||
-                 !strncmp(token, "compare_and_swap", strlen("compare_and_swap")))
-            ops |= (1 << MPIDIG_ACCU_CSWAP_SHIFT);
+        op_index = MPIDIG_accu_op_str_to_index(token);
+        if (op_index < MPIR_OP_N_PREDEFINED)
+            ops |= (1 << op_index);
+
+        MPIDIG_accu_op_set_all_dtypes(win, op_index, INT_MAX);
 
         token = (char *) strtok_r(NULL, ",", &savePtr);
     }
@@ -120,35 +172,35 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_get_info_accu_ops_str(uint32_t val, char *b
     MPIR_Assert(maxlen >= strlen("max,min,sum,prod,maxloc,minloc,band,bor,"
                                  "bxor,land,lor,lxor,replace,no_op,cswap") + 1);
 
-    if (val & (1 << MPIDIG_ACCU_MAX_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_MAX)))
         c += snprintf(buf + c, maxlen - c, "max");
-    if (val & (1 << MPIDIG_ACCU_MIN_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_MIN)))
         c += snprintf(buf + c, maxlen - c, "%smin", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_SUM_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_SUM)))
         c += snprintf(buf + c, maxlen - c, "%ssum", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_PROD_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_PROD)))
         c += snprintf(buf + c, maxlen - c, "%sprod", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_MAXLOC_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_MAXLOC)))
         c += snprintf(buf + c, maxlen - c, "%smaxloc", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_MINLOC_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_MINLOC)))
         c += snprintf(buf + c, maxlen - c, "%sminloc", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_BAND_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_BAND)))
         c += snprintf(buf + c, maxlen - c, "%sband", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_BOR_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_BOR)))
         c += snprintf(buf + c, maxlen - c, "%sbor", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_BXOR_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_BXOR)))
         c += snprintf(buf + c, maxlen - c, "%sbxor", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_LAND_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_LAND)))
         c += snprintf(buf + c, maxlen - c, "%sland", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_LOR_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_LOR)))
         c += snprintf(buf + c, maxlen - c, "%slor", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_LXOR_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_LXOR)))
         c += snprintf(buf + c, maxlen - c, "%slxor", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_REPLACE_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_REPLACE)))
         c += snprintf(buf + c, maxlen - c, "%sreplace", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_NO_OP_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_NO_OP)))
         c += snprintf(buf + c, maxlen - c, "%sno_op", (c > 0) ? "," : "");
-    if (val & (1 << MPIDIG_ACCU_CSWAP_SHIFT))
+    if (val & (1 << MPIR_Op_predefined_get_index(MPI_OP_NULL)))
         c += snprintf(buf + c, maxlen - c, "%scswap", (c > 0) ? "," : "");
 
     if (c == 0)
@@ -205,6 +257,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
     MPIR_Info *curr_ptr;
     char *value, *token, *savePtr = NULL;
     int save_ordering;
+    bool which_accumulate_ops_set = false;
+    bool accumulate_op_types_set = false;
 
     curr_ptr = info->next;
 
@@ -280,8 +334,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
          * have a good way to ensure all outstanding atomic ops have been completed
          * on all processes especially in passive-target epochs. */
         else if (is_init && !strcmp(curr_ptr->key, "which_accumulate_ops")) {
-            MPIDIG_parse_info_accu_ops_str(curr_ptr->value,
+            MPIDIG_parse_info_accu_ops_str(win, curr_ptr->value,
                                            &MPIDIG_WIN(win, info_args).which_accumulate_ops);
+            /* Should not set which_accumulate_ops and accumulate_op_types together. */
+            MPIR_Assert(!accumulate_op_types_set);
+            which_accumulate_ops_set = true;
         } else if (is_init && !strcmp(curr_ptr->key, "accumulate_noncontig_dtype")) {
             if (!strcmp(curr_ptr->value, "true"))
                 MPIDIG_WIN(win, info_args).accumulate_noncontig_dtype = true;
@@ -305,10 +362,39 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
                 MPIDIG_WIN(win, info_args).symm_attach = true;
             else
                 MPIDIG_WIN(win, info_args).symm_attach = false;
+        } else if (is_init && !strncmp(curr_ptr->key, "accumulate_op_types",
+                                       strlen("accumulate_op_types"))) {
+            /* Should not set which_accumulate_ops and accumulate_op_types together. */
+            MPIR_Assert(!which_accumulate_ops_set);
+            MPIDIG_parse_info_accu_op_types_str(win, curr_ptr->key, curr_ptr->value);
+            accumulate_op_types_set = true;
         }
       next:
         curr_ptr = curr_ptr->next;
     }
+
+    /* default any op with unlimited count */
+    if (is_init && !which_accumulate_ops_set && !accumulate_op_types_set) {
+        int op_index;
+        for (op_index = 0; op_index < MPIR_OP_N_PREDEFINED; op_index++)
+            MPIDIG_WIN(win, info_args).which_accumulate_ops |= (1 << op_index);
+        MPIDIG_accu_op_set_all_dtypes(win, op_index, INT_MAX);
+    }
+#ifdef ENABLE_ACCUMULATE_OP_TYPES_DEBUG
+    if (win->comm_ptr->rank == 0) {
+        int op_index, i;
+        for (op_index = 0; op_index < MPIR_OP_N_PREDEFINED; op_index++) {
+            printf("accumulate_op_types[%d] %s:", op_index, MPIR_Op_get_short_name(op_index));
+            for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+                if (MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][i].max_count > 0) {
+                    printf("%s %d, ", MPIR_Datatype_predefined_get_short_name(i),
+                           MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][i].max_count);
+                }
+            }
+            printf("\n");
+        }
+    }
+#endif
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_WIN_SET_INFO);
@@ -352,7 +438,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_init(MPI_Aint length, int disp_unit, MPI
     MPIR_Win *win = (MPIR_Win *) MPIR_Handle_obj_alloc(&MPIR_Win_mem);
     MPIDIG_win_target_t *targets = NULL;
     MPIR_Comm *win_comm_ptr;
-    MPIDIG_win_info_accu_op_shift_t op_shift;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_WIN_INIT);
     MPIR_FUNC_VERBOSE_RMA_ENTER(MPID_STATE_MPIDIG_WIN_INIT);
@@ -403,10 +488,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_init(MPI_Aint length, int disp_unit, MPI
         MPIDIG_WIN(win, info_args).alloc_shm = 0;
     }
 
-    /* default any op */
+    /* default value will be set at MPIDIG_win_set_info if no hint is set */
     MPIDIG_WIN(win, info_args).which_accumulate_ops = 0;
-    for (op_shift = MPIDIG_ACCU_OP_SHIFT_FIRST; op_shift < MPIDIG_ACCU_OP_SHIFT_LAST; op_shift++)
-        MPIDIG_WIN(win, info_args).which_accumulate_ops |= (1 << op_shift);
+    memset(MPIDIG_WIN(win, info_args).accumulate_op_types, 0,
+           sizeof(MPIDIG_WIN(win, info_args).accumulate_op_types));
+
     MPIDIG_WIN(win, info_args).accumulate_noncontig_dtype = true;
     MPIDIG_WIN(win, info_args).accumulate_max_bytes = -1;
     MPIDIG_WIN(win, info_args).disable_shm_accumulate = false;

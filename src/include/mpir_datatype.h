@@ -8,23 +8,14 @@
 #ifndef MPIR_DATATYPE_H_INCLUDED
 #define MPIR_DATATYPE_H_INCLUDED
 
-/* This value should be set to greatest value used as the type index suffix in
- * the predefined handles.  That is, look at the last two hex digits of all
- * predefined datatype handles, take the greatest one, and convert it to decimal
- * here. */
-/* FIXME: I will fix this by refactor the current datatype code out-of configure.ac */
-#define MPIR_DATATYPE_N_BUILTIN 71
+#include "mpir_pre.h"
+
 #define MPIR_DTYPE_BEGINNING  0
 #define MPIR_DTYPE_END       -1
 
 #ifndef MPIR_DATATYPE_PREALLOC
 #define MPIR_DATATYPE_PREALLOC 8
 #endif /* MPIR_DATATYPE_PREALLOC */
-
-#ifndef MPIR_DATATYPE_PAIRTYPE
-#define MPIR_DATATYPE_PAIRTYPE 5
-
-#define MPIR_DATATYPE_N_PREDEFINED (MPIR_DATATYPE_N_BUILTIN + MPIR_DATATYPE_PAIRTYPE)
 
 /*S
   MPIR_Datatype_contents - Holds envelope and contents data for a given
@@ -154,7 +145,6 @@ struct MPIR_Datatype {
 extern MPIR_Datatype MPIR_Datatype_builtin[MPIR_DATATYPE_N_BUILTIN];
 extern MPIR_Datatype MPIR_Datatype_direct[];
 extern MPIR_Object_alloc_t MPIR_Datatype_mem;
-extern MPI_Datatype MPIR_Datatype_index_to_predefined[MPIR_DATATYPE_N_PREDEFINED];
 
 static inline void MPIR_Datatype_free(MPIR_Datatype * ptr);
 
@@ -505,11 +495,7 @@ static inline int MPIR_Datatype_set_contents(MPIR_Datatype * new_dtp,
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX MPI_Datatype MPIR_Datatype_predefined_get_type(uint32_t index)
-{
-    MPIR_Assert(index < MPIR_DATATYPE_N_PREDEFINED);
-    return MPIR_Datatype_index_to_predefined[index];
-}
+MPI_Datatype MPIR_Datatype_predefined_get_type(uint32_t index);
 
 MPL_STATIC_INLINE_PREFIX int MPIR_Datatype_predefined_get_index(MPI_Datatype datatype)
 {
@@ -528,7 +514,11 @@ MPL_STATIC_INLINE_PREFIX int MPIR_Datatype_predefined_get_index(MPI_Datatype dat
             index = MPIR_DATATYPE_N_PREDEFINED; /* invalid index */
             break;
     }
+    return index;
 }
+
+const char *MPIR_Datatype_predefined_get_short_name(int index);
+MPI_Datatype MPIR_Datatype_predefined_search_short_name(const char *short_name);
 
 /* contents accessor functions */
 void MPIR_Type_access_contents(MPI_Datatype type, int **ints_p, MPI_Aint ** aints_p,

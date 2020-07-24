@@ -23,8 +23,6 @@ MPIR_Object_alloc_t MPIR_Datatype_mem = { 0, 0, 0, 0, MPIR_DATATYPE,
     MPIR_DATATYPE_PREALLOC
 };
 
-MPI_Datatype MPIR_Datatype_index_to_predefined[MPIR_DATATYPE_N_PREDEFINED];
-
 static int MPIR_Datatype_finalize(void *dummy);
 static int datatype_attr_finalize_cb(void *dummy);
 
@@ -116,6 +114,133 @@ static MPI_Datatype mpi_dtypes[] = {
     (MPI_Datatype) - 1,
 };
 
+typedef struct dtype_name {
+    MPI_Datatype dtype;
+    const char *short_name;
+} dtype_name_t;
+
+dtype_name_t indexed_datatype_names[MPIR_DATATYPE_N_PREDEFINED];
+
+dtype_name_t datatype_names[MPIR_DATATYPE_N_PREDEFINED] = {
+    {MPI_CHAR, "char"},
+    {MPI_UNSIGNED_CHAR, "uchar"},
+    {MPI_SIGNED_CHAR, "char"},
+    {MPI_BYTE, "byte"},
+    {MPI_WCHAR, "wchar"},
+    {MPI_SHORT, "short"},
+    {MPI_UNSIGNED_SHORT, "ushort"},
+    {MPI_INT, "int"},
+    {MPI_UNSIGNED, "uint"},
+    {MPI_LONG, "long"},
+    {MPI_UNSIGNED_LONG, "ulong"},
+    {MPI_FLOAT, "float"},
+    {MPI_DOUBLE, "double"},
+    {MPI_LONG_DOUBLE, "longdouble"},
+    {MPI_LONG_LONG, "longlong"},
+    {MPI_UNSIGNED_LONG_LONG, "ulonglong"},
+    {MPI_PACKED, "packed"},
+    {MPI_LB, "lb"},
+    {MPI_UB, "ub"},
+    {MPI_2INT, "2int"},
+
+    /* C99 types */
+    {MPI_INT8_T, "int8"},
+    {MPI_INT16_T, "int16"},
+    {MPI_INT32_T, "int32"},
+    {MPI_INT64_T, "int64"},
+    {MPI_UINT8_T, "uint8"},
+    {MPI_UINT16_T, "uint16"},
+    {MPI_UINT32_T, "uint32"},
+    {MPI_UINT64_T, "uint64"},
+    {MPI_C_BOOL, "bool"},
+    {MPI_C_FLOAT_COMPLEX, "floatcomplex"},
+    {MPI_C_DOUBLE_COMPLEX, "doublecomplex"},
+    {MPI_C_LONG_DOUBLE_COMPLEX, "longdoublecomplex"},
+
+    /* address/offset/count types */
+    {MPI_AINT, "aint"},
+    {MPI_OFFSET, "offset"},
+    {MPI_COUNT, "count"},
+
+    /* Fortran types */
+    {MPI_COMPLEX, "complex"},
+    {MPI_DOUBLE_COMPLEX, "doublecomplex"},
+    {MPI_LOGICAL, "logical"},
+    {MPI_REAL, "real"},
+    {MPI_DOUBLE_PRECISION, "doubleprecision"},
+    {MPI_INTEGER, "integer"},
+    {MPI_2INTEGER, "2integer"},
+#ifdef MPICH_DEFINE_2COMPLEX
+    {MPI_2COMPLEX, "2complex"},
+    {MPI_2DOUBLE_COMPLEX, "2doublecomplex"},
+#endif
+    {MPI_2REAL, "2real"},
+    {MPI_2DOUBLE_PRECISION, "2doubleprecision"},
+    {MPI_CHARACTER, "character"},
+#ifdef HAVE_FORTRAN_BINDING
+    {MPI_REAL4, "real4"},
+    {MPI_REAL8, "real8"},
+    {MPI_REAL16, "real16"},
+    {MPI_COMPLEX8, "complex8"},
+    {MPI_COMPLEX16, "complex16"},
+    {MPI_COMPLEX32, "complex32"},
+    {MPI_INTEGER1, "integer1"},
+    {MPI_INTEGER2, "integer2"},
+    {MPI_INTEGER4, "integer4"},
+    {MPI_INTEGER8, "integer8"},
+    {MPI_INTEGER16, "integer16"},
+#endif
+    {MPI_FLOAT_INT, "floatint"},
+    {MPI_DOUBLE_INT, "doubleint"},
+    {MPI_LONG_INT, "longint"},
+    {MPI_SHORT_INT, "shortint"},
+    {MPI_LONG_DOUBLE_INT, "longdoubleint"},
+    {(MPI_Datatype) (-1), ""}   /* end of the list */
+};
+
+const char *MPIR_Datatype_predefined_get_short_name(int index)
+{
+    return indexed_datatype_names[index].short_name;
+}
+
+MPI_Datatype MPIR_Datatype_predefined_search_short_name(const char *short_name)
+{
+    int i;
+    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+        if (datatype_names[i].dtype == (MPI_Datatype) (-1))     /* end of list */
+            break;
+        if (!strcmp(datatype_names[i].short_name, short_name))
+            return datatype_names[i].dtype;
+    }
+    return MPI_DATATYPE_NULL;
+}
+
+MPI_Datatype MPIR_Datatype_predefined_get_type(uint32_t index)
+{
+    MPIR_Assert(index < MPIR_DATATYPE_N_PREDEFINED);
+    return indexed_datatype_names[index].dtype;
+}
+
+static void predefined_index_init(void)
+{
+    int i;
+
+    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+        indexed_datatype_names[i].dtype = MPI_DATATYPE_NULL;
+        indexed_datatype_names[i].short_name = "";
+    }
+
+    /* Set index to handle mapping for builtin datatypes */
+    for (i = 0; i < sizeof(datatype_names) / sizeof(dtype_name_t) - 1; i++) {
+        dtype_name_t d = datatype_names[i];
+
+        if (d.dtype != MPI_DATATYPE_NULL) {
+            int index = MPIR_Datatype_predefined_get_index(d.dtype);
+            indexed_datatype_names[index] = d;
+        }
+    }
+}
+
 /*
   MPIR_Datatype_init()
 
@@ -141,34 +266,6 @@ static MPI_Datatype mpi_pairtypes[] = {
     MPI_LONG_DOUBLE_INT,
     (MPI_Datatype) - 1
 };
-
-static void predefined_index_init(void)
-{
-    int i;
-
-    for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++)
-        MPIR_Datatype_index_to_predefined[i] = MPI_DATATYPE_NULL;
-
-    /* Set index to handle mapping for builtin datatypes */
-    for (i = 0; i < sizeof(mpi_dtypes) / sizeof(MPI_Datatype) - 1; i++) {
-        MPI_Datatype d = mpi_dtypes[i];
-
-        if (d != MPI_DATATYPE_NULL) {
-            int index = MPIR_Datatype_predefined_get_index(d);
-            MPIR_Datatype_index_to_predefined[index] = d;
-        }
-    }
-
-    /* Set index to handle mapping for pairtype datatypes */
-    for (i = 0; i < sizeof(mpi_pairtypes) / sizeof(MPI_Datatype) - 1; i++) {
-        MPI_Datatype d = mpi_pairtypes[i];
-
-        if (d != MPI_DATATYPE_NULL) {
-            int index = MPIR_Datatype_predefined_get_index(d) + MPIR_DATATYPE_N_BUILTIN;
-            MPIR_Datatype_index_to_predefined[index] = d;
-        }
-    }
-}
 
 #undef FUNCNAME
 #define FUNCNAME MPIR_Datatype_init

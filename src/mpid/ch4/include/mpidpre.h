@@ -29,6 +29,7 @@
 #include "uthash.h"
 #include "ch4_coll_params.h"
 #include "ch4i_workq_types.h"
+#include "mpir_pre.h"
 
 #ifdef MPIDI_CH4_USE_MT_DIRECT
 #define MPIDI_CH4_MT_MODEL MPIDI_CH4_MT_DIRECT
@@ -246,25 +247,10 @@ typedef enum {
     MPIDIG_ACCU_SAME_OP_NO_OP
 } MPIDIG_win_info_accumulate_ops;
 
-typedef enum {
-    MPIDIG_ACCU_OP_SHIFT_FIRST = 0,
-    MPIDIG_ACCU_MAX_SHIFT = 0,  /* 1<<0 */
-    MPIDIG_ACCU_MIN_SHIFT = 1,
-    MPIDIG_ACCU_SUM_SHIFT = 2,
-    MPIDIG_ACCU_PROD_SHIFT = 3,
-    MPIDIG_ACCU_MAXLOC_SHIFT = 4,
-    MPIDIG_ACCU_MINLOC_SHIFT = 5,
-    MPIDIG_ACCU_BAND_SHIFT = 6,
-    MPIDIG_ACCU_BOR_SHIFT = 7,
-    MPIDIG_ACCU_BXOR_SHIFT = 8,
-    MPIDIG_ACCU_LAND_SHIFT = 9,
-    MPIDIG_ACCU_LOR_SHIFT = 10,
-    MPIDIG_ACCU_LXOR_SHIFT = 11,
-    MPIDIG_ACCU_REPLACE_SHIFT = 12,
-    MPIDIG_ACCU_NO_OP_SHIFT = 13,       /* atomic get */
-    MPIDIG_ACCU_CSWAP_SHIFT = 14,
-    MPIDIG_ACCU_OP_SHIFT_LAST
-} MPIDIG_win_info_accu_op_shift_t;
+typedef struct MPIDIG_win_accu_info {
+    unsigned int max_count;     /* non-negative number. INT_MAX means unlimited
+                                 * because the user can only set int count.*/
+} MPIDIG_win_accu_info_t;
 
 typedef struct MPIDIG_win_info_args_t {
     int no_locks;
@@ -276,9 +262,15 @@ typedef struct MPIDIG_win_info_args_t {
 
     /* hints to tradeoff atomicity support */
     uint32_t which_accumulate_ops;      /* Arbitrary combination of {1<<max|1<<min|1<<sum|...}
-                                         * with bit shift defined in MPIDIG_win_info_accu_op_shift_t.
+                                         * with bit shift defined by op index obtained from MPIR_Op_predefined_get_index.
                                          * any_op and none are two special values.
                                          * any_op by default. */
+    /* Set specific datatypes for each op as format below:
+     * KEY="accumulate_op_types:<op>" VALUE="<dtype1>:<max_count>,<dtype2>:<max_count>,..."
+     * NOTE: should not use which_accumulate_ops and accumulate_op_types together.
+     * Netmod internally uses only accumulate_op_types because it is the superset. */
+    MPIDIG_win_accu_info_t accumulate_op_types[MPIR_OP_N_PREDEFINED][MPIR_DATATYPE_N_PREDEFINED];
+
     bool accumulate_noncontig_dtype;    /* true by default. */
     MPI_Aint accumulate_max_bytes;      /* Non-negative integer, -1 (unlimited) by default.
                                          * TODO: can be set to win_size.*/

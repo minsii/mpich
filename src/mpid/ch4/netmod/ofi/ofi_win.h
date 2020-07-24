@@ -14,63 +14,6 @@
 #include "ofi_impl.h"
 #include <opa_primitives.h>
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_accu_op_hint_get_index(MPIDIG_win_info_accu_op_shift_t
-                                                              hint_shift)
-{
-    int op_index = 0;
-    switch (hint_shift) {
-        case MPIDIG_ACCU_MAX_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_MAX);
-            break;
-        case MPIDIG_ACCU_MIN_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_MIN);
-            break;
-        case MPIDIG_ACCU_SUM_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_SUM);
-            break;
-        case MPIDIG_ACCU_PROD_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_PROD);
-            break;
-        case MPIDIG_ACCU_MAXLOC_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_MAXLOC);
-            break;
-        case MPIDIG_ACCU_MINLOC_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_MINLOC);
-            break;
-        case MPIDIG_ACCU_BAND_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_BAND);
-            break;
-        case MPIDIG_ACCU_BOR_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_BOR);
-            break;
-        case MPIDIG_ACCU_BXOR_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_BXOR);
-            break;
-        case MPIDIG_ACCU_LAND_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_LAND);
-            break;
-        case MPIDIG_ACCU_LOR_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_LOR);
-            break;
-        case MPIDIG_ACCU_LXOR_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_LXOR);
-            break;
-        case MPIDIG_ACCU_REPLACE_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_REPLACE);
-            break;
-        case MPIDIG_ACCU_NO_OP_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_NO_OP);
-            break;
-        case MPIDIG_ACCU_CSWAP_SHIFT:
-            op_index = MPIDI_OFI_get_mpi_acc_op_index(MPI_OP_NULL);
-            break;
-        default:
-            MPIR_Assert(hint_shift < MPIDIG_ACCU_OP_SHIFT_LAST);
-            break;
-    }
-    return op_index;
-}
-
 #undef FUNCNAME
 #define FUNCNAME MPIDI_OFI_load_acc_hint
 #undef FCNAME
@@ -78,12 +21,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_accu_op_hint_get_index(MPIDIG_win_info_ac
 MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_acc_hint(MPIR_Win * win)
 {
     int op_index = 0, i;
-    MPIDIG_win_info_accu_op_shift_t hint_shift = MPIDIG_ACCU_OP_SHIFT_FIRST;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_WIN_LOAD_ATOMIC_INFO);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_WIN_LOAD_ATOMIC_INFO);
-
-    MPIR_Assert(MPIDI_OFI_DTYPE_SZ >= MPIR_DATATYPE_N_PREDEFINED);
 
     /* TODO: we assume all pes pass the same hint. Allreduce is needed to check
      * the maximal value or the spec must define it as same value on all pes.
@@ -100,29 +40,42 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_acc_hint(MPIR_Win * win)
         if (dt == MPI_DATATYPE_NULL)
             continue;   /* skip disabled datatype */
 
-        for (hint_shift = MPIDIG_ACCU_OP_SHIFT_FIRST; hint_shift < MPIDIG_ACCU_OP_SHIFT_LAST;
-             hint_shift++) {
+        for (op_index = 0; op_index < MPIR_OP_N_PREDEFINED; op_index++) {
             uint64_t max_count = 0;
-            /* Calculate the max count of all possible atomics if this op is enabled.
+            /* Calculate the max count of all possible atomics if this <op, dtype> is enabled.
              * If the op is disabled for the datatype, the max counts are set to 0 (see util.c).*/
-            if (MPIDIG_WIN(win, info_args).which_accumulate_ops & (1 << hint_shift)) {
-                op_index = MPIDI_OFI_accu_op_hint_get_index(hint_shift);
+            if (MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][i].max_count) {
+                MPI_Op op = MPIR_Op_predefined_get_op(op_index);
 
                 /* Invalid <datatype, op> pairs should be excluded as it is never used in a
                  * correct program (e.g., <double, MAXLOC>).*/
                 if (!MPIDI_OFI_global.win_op_table[i][op_index].mpi_acc_valid)
                     continue;
 
-                if (hint_shift == MPIDIG_ACCU_NO_OP_SHIFT)      /* atomic get */
+                if (op == MPI_NO_OP)    /* atomic get */
                     max_count = MPIDI_OFI_global.win_op_table[i][op_index].max_fetch_atomic_count;
-                else if (hint_shift == MPIDIG_ACCU_CSWAP_SHIFT) /* compare and swap */
+                else if (op == MPI_OP_NULL)     /* compare and swap */
                     max_count = MPIDI_OFI_global.win_op_table[i][op_index].max_compare_atomic_count;
                 else    /* atomic write and fetch_and_write */
                     max_count = MPL_MIN(MPIDI_OFI_global.win_op_table[i][op_index].max_atomic_count,
                                         MPIDI_OFI_global.
                                         win_op_table[i][op_index].max_fetch_atomic_count);
 
-                /* calculate the minimal max_count. */
+                if (MPIDIG_WIN(win, info_args).accumulate_op_types[op_index][i].max_count >
+                    max_count) {
+                    /* user requires longer data than network support. force AM. */
+                    MPIDI_OFI_WIN(win).am_progress_flag = true;
+#ifdef ENABLE_ACCUMULATE_OP_TYPES_DEBUG
+                    printf
+                        ("%s:found unsupported atomic <dtype 0x%x, op 0x%x, max_count %d (ofi:%d)>, force AM\n",
+                         __FUNCTION__, dt, op, MPIDIG_WIN(win, info_args).accumulate_op_types
+                         [op_index][i].max_count, max_count);
+#endif
+                }
+
+                /* calculate the minimal max_count for each datatype. It is used
+                 * when issuing an atomic operation and but the user does not set
+                 * accumulate_op_types. */
                 if (first_valid_op) {
                     MPIDI_OFI_WIN(win).dtypes_max_count[i] = max_count;
                     first_valid_op = false;

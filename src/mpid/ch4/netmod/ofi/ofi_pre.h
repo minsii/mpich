@@ -22,6 +22,7 @@
 #include <rdma/fi_cm.h>
 #include <rdma/fi_errno.h>
 #include "ofi_capability_sets.h"
+#include "mpir_pre.h"
 
 /* Defines */
 
@@ -169,14 +170,6 @@ typedef struct {
     struct fid_mr *mr;
 } MPIDI_OFI_dwin_mem_t;
 
-/* FIXME: MPIR_DATATYPE_N_PREDEFINED is not known in pre headers.
- * This code is a temporary workaround. */
-#ifndef MPIR_DATATYPE_N_PREDEFINED
-#define MPIDI_OFI_DTYPE_SZ 76
-#else
-#define MPIDI_OFI_DTYPE_SZ MPIR_DATATYPE_N_PREDEFINED
-#endif
-
 typedef struct {
     struct fid_mr *mr;
     uint64_t mr_key;
@@ -195,13 +188,13 @@ typedef struct {
     MPL_gavl_tree_t dwin_mems;  /* locally attached memory regions */
 
     /* Accumulate related info.
-     * Translate CH4 which_accumulate_ops hints to
+     * Translate CH4 accumulate_ops hints to
      * atomicity support of all OFI datatypes. A datatype
      * is supported only when all enabled ops are valid atomic
      * provided by the OFI provider (recored in MPIDI_OFI_global.win_op_table).
      * Invalid <dtype, op> defined in MPI standard are excluded.
      * This structure is prepared at window creation time. */
-    uint64_t dtypes_max_count[MPIDI_OFI_DTYPE_SZ];
+    uint64_t dtypes_max_count[MPIR_DATATYPE_N_PREDEFINED];
 
     bool am_progress_flag;
 } MPIDI_OFI_win_t;

@@ -400,13 +400,6 @@ static inline int mpi_to_ofi(MPI_Datatype dt, enum fi_datatype *fi_dt, MPI_Op op
     return -1;
 }
 
-static MPI_Op mpi_ops[] = {
-    MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD,
-    MPI_LAND, MPI_BAND, MPI_LOR, MPI_BOR,
-    MPI_LXOR, MPI_BXOR, MPI_MINLOC, MPI_MAXLOC,
-    MPI_REPLACE, MPI_NO_OP, MPI_OP_NULL,
-};
-
 #define _TBL MPIDI_OFI_global.win_op_table[i][j]
 #define CHECK_ATOMIC(fcn,field1,field2)            \
   atomic_count = 0;                                \
@@ -450,10 +443,11 @@ static inline void create_dt_map()
         if (dt == MPI_DATATYPE_NULL)
             continue;   /* skip disabled datatype */
 
-        for (j = 0; j < MPIDI_OFI_OP_SIZES; j++) {
+        for (j = 0; j < MPIR_OP_N_PREDEFINED; j++) {
+            MPI_Op op = MPIR_Op_predefined_get_op(j);
             enum fi_datatype fi_dt = (enum fi_datatype) -1;
             enum fi_op fi_op = (enum fi_op) -1;
-            mpi_to_ofi(dt, &fi_dt, mpi_ops[j], &fi_op);
+            mpi_to_ofi(dt, &fi_dt, op, &fi_op);
             MPIR_Assert(fi_dt != (enum fi_datatype) -1);
             MPIR_Assert(fi_op != (enum fi_op) -1);
             _TBL.dt = fi_dt;
@@ -462,7 +456,7 @@ static inline void create_dt_map()
             _TBL.max_atomic_count = 0;
             _TBL.max_fetch_atomic_count = 0;
             _TBL.max_compare_atomic_count = 0;
-            _TBL.mpi_acc_valid = check_mpi_acc_valid(dt, mpi_ops[j]);
+            _TBL.mpi_acc_valid = check_mpi_acc_valid(dt, op);
             ssize_t ret;
             size_t atomic_count;
 
@@ -475,6 +469,24 @@ static inline void create_dt_map()
             }
         }
     }
+
+#ifdef ENABLE_ACCUMULATE_OP_TYPES_DEBUG
+    if (MPIR_Process.world_rank == 0) {
+        for (j = 0; j < MPIR_OP_N_PREDEFINED; j++) {
+            MPI_Op op = MPIR_Op_predefined_get_op(j);
+            for (i = 0; i < MPIR_DATATYPE_N_PREDEFINED; i++) {
+                MPI_Datatype dt = MPIR_Datatype_predefined_get_type(i);
+                if (dt == MPI_DATATYPE_NULL)
+                    continue;
+                printf
+                    ("op %s, dt %s, atomic_valid %d, mpi_valid %d, count %d, fetch_count %d, cswp_count %d\n",
+                     MPIR_Op_get_short_name(j), MPIR_Datatype_predefined_get_short_name(i),
+                     _TBL.atomic_valid, _TBL.mpi_acc_valid, _TBL.max_atomic_count,
+                     _TBL.max_fetch_atomic_count, _TBL.max_compare_atomic_count);
+            }
+        }
+    }
+#endif
 }
 
 void MPIDI_OFI_index_datatypes()
