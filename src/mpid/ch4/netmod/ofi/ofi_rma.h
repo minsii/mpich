@@ -720,7 +720,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
                                               int target_count,
                                               MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * av,
-                                              MPIR_Request ** sigreq)
+                                              MPIR_Request ** sigreq, bool comm_world_flag,
+                                              bool target_abs_flag)
 {
     int rc, mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_win_request_t *req = NULL;
@@ -756,16 +757,45 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
     if (unlikely(origin_bytes == 0))
         goto null_op_exit;
 
-    if (target_rank == win->comm_ptr->rank) {
-        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
-        mpi_errno = MPIR_Localcopy((char *) win->base + offset,
-                                   target_count,
+    if (target_rank == MPIDI_OFI_win_comm_rank(win, comm_world_flag)) {
+        uint64_t offset;
+        char *addr;
+        if (target_abs_flag) {
+            addr = (char *) target_disp + target_true_lb;
+        } else {
+            uint64_t offset;
+            offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank)
+                + target_true_lb;
+            addr = (char *) win->base + offset;
+        }
+
+        mpi_errno = MPIR_Localcopy(addr, target_count,
                                    target_datatype, origin_addr, origin_count, origin_datatype);
         goto null_op_exit;
     }
 
+    uint64_t mr_key;
+    uint64_t addr;
+#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH   /* Do not support native RMA over dynamic window if symm_attach is not on */
+    if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {
+        addr = (uint64_t) (target_disp + MPI_BOTTOM);
+        mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
+    } else
+#endif
+    {
+        if (target_abs_flag) {
+            /* TODO: need shift win_base in scalable MR */
+            MPIR_Assert(!MPIDI_OFI_ENABLE_MR_SCALABLE);
+            addr = target_disp + target_true_lb;
+        } else {
+            uint64_t offset;
+            offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank) + target_true_lb;
+            addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset);
+        }
+        mr_key = MPIDI_OFI_winfo_mr_key(win, target_rank);
+    }
+
     if (origin_contig && target_contig) {
-        offset = target_disp * MPIDI_OFI_winfo_disp_unit(win, target_rank);
         MPIDI_OFI_INIT_SIGNAL_REQUEST(win, sigreq, &flags);
         if (!sigreq)
             flags = 0;
@@ -779,9 +809,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
         msg.data = 0;
         iov.iov_base = (char *) origin_addr + origin_true_lb;
         iov.iov_len = target_bytes;
-        riov.addr = (uint64_t) (MPIDI_OFI_winfo_base(win, target_rank) + offset + target_true_lb);
+        riov.addr = addr;
         riov.len = target_bytes;
-        riov.key = MPIDI_OFI_winfo_mr_key(win, target_rank);
+        riov.key = mr_key;
         MPIDI_OFI_CALL_RETRY2(MPIDI_OFI_INIT_CHUNK_CONTEXT(win, sigreq),
                               fi_readmsg(MPIDI_OFI_WIN(win).ep, &msg, flags), rdma_write);
         goto fn_exit;
@@ -864,14 +894,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr,
                                               int target_rank,
                                               MPI_Aint target_disp,
                                               int target_count, MPI_Datatype target_datatype,
-                                              MPIR_Win * win, MPIDI_av_entry_t * av)
+                                              MPIR_Win * win, MPIDI_av_entry_t * av,
+                                              bool comm_world_flag, bool target_abs_flag)
 {
     int mpi_errno = MPI_SUCCESS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_GET);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_GET);
 
-    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)) {
+    if (!MPIDI_OFI_ENABLE_RMA || MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT(win)) {
         mpi_errno = MPIDIG_mpi_get(origin_addr, origin_count, origin_datatype, target_rank,
                                    target_disp, target_count, target_datatype, win);
         goto fn_exit;
@@ -881,7 +912,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr,
                                  origin_count,
                                  origin_datatype,
                                  target_rank,
-                                 target_disp, target_count, target_datatype, win, av, NULL);
+                                 target_disp, target_count, target_datatype, win, av, NULL,
+                                 comm_world_flag, target_abs_flag);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_GET);
@@ -1619,7 +1651,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rget(void *origin_addr,
                                  origin_count,
                                  origin_datatype,
                                  target_rank,
-                                 target_disp, target_count, target_datatype, win, av, request);
+                                 target_disp, target_count, target_datatype, win, av, request,
+                                 false, false);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_RGET);

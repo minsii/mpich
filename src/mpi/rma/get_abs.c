@@ -7,34 +7,35 @@
 
 #include "mpiimpl.h"
 
-/* -- Begin Profiling Symbol Block for routine MPI_Get */
+/* -- Begin Profiling Symbol Block for routine MPIX_Get_abs */
 #if defined(HAVE_PRAGMA_WEAK)
-#pragma weak MPI_Get = PMPI_Get
+#pragma weak MPIX_Get_abs = PMPIX_Get_abs
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
-#pragma _HP_SECONDARY_DEF PMPI_Get  MPI_Get
+#pragma _HP_SECONDARY_DEF PMPIX_Get_abs  MPIX_Get_abs
 #elif defined(HAVE_PRAGMA_CRI_DUP)
-#pragma _CRI duplicate MPI_Get as PMPI_Get
+#pragma _CRI duplicate MPIX_Get_abs as PMPIX_Get_abs
 #elif defined(HAVE_WEAK_ATTRIBUTE)
-int MPI_Get(void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
-            int target_rank, MPI_Aint target_disp, int target_count,
-            MPI_Datatype target_datatype, MPI_Win win) __attribute__ ((weak, alias("PMPI_Get")));
+int MPIX_Get_abs(void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+                 int target_rank, MPI_Aint target_disp, int target_count,
+                 MPI_Datatype target_datatype, MPI_Win win)
+    __attribute__ ((weak, alias("PMPI_Get")));
 #endif
 /* -- End Profiling Symbol Block */
 
 /* Define MPICH_MPI_FROM_PMPI if weak symbols are not supported to build
    the MPI routines */
 #ifndef MPICH_MPI_FROM_PMPI
-#undef MPI_Get
-#define MPI_Get PMPI_Get
+#undef MPIX_Get_abs
+#define MPIX_Get_abs PMPIX_Get_abs
 
 #endif
 
 #undef FUNCNAME
-#define FUNCNAME MPI_Get
+#define FUNCNAME MPIX_Get_abs
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
 /*@
-   MPI_Get - Get data from a memory window on a remote process
+   MPIX_Get_abs - Get data from a memory window on a remote process
 
 Input Parameters:
 + origin_addr - Address of the buffer in which to receive the data
@@ -61,9 +62,9 @@ Input Parameters:
 
 .seealso: MPI_Rget
 @*/
-int MPI_Get(void *origin_addr, int origin_count, MPI_Datatype
-            origin_datatype, int target_rank, MPI_Aint target_disp,
-            int target_count, MPI_Datatype target_datatype, MPI_Win win)
+int MPIX_Get_abs(void *origin_addr, int origin_count, MPI_Datatype
+                 origin_datatype, int target_rank, MPI_Aint target_addr,
+                 int target_count, MPI_Datatype target_datatype, MPI_Win win)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Win *win_ptr = NULL;
@@ -106,7 +107,7 @@ int MPI_Get(void *origin_addr, int origin_count, MPI_Datatype
             MPIR_ERRTEST_COUNT(target_count, mpi_errno);
             MPIR_ERRTEST_DATATYPE(target_datatype, "target_datatype", mpi_errno);
             if (win_ptr->create_flavor != MPI_WIN_FLAVOR_DYNAMIC)
-                MPIR_ERRTEST_DISP(target_disp, mpi_errno);
+                MPIR_ERRTEST_DISP(target_addr, mpi_errno);
 
             if (HANDLE_GET_KIND(origin_datatype) != HANDLE_KIND_BUILTIN) {
                 MPIR_Datatype *datatype_ptr = NULL;
@@ -142,8 +143,8 @@ int MPI_Get(void *origin_addr, int origin_count, MPI_Datatype
     /* ... body of routine ...  */
 
     mpi_errno = MPID_Get(origin_addr, origin_count, origin_datatype,
-                         target_rank, target_disp, target_count, target_datatype, win, win_ptr,
-                         false);
+                         target_rank, target_addr, target_count, target_datatype, win, win_ptr,
+                         true);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
 
@@ -160,9 +161,9 @@ int MPI_Get(void *origin_addr, int origin_count, MPI_Datatype
     {
         mpi_errno =
             MPIR_Err_create_code(mpi_errno, MPIR_ERR_RECOVERABLE, FCNAME, __LINE__, MPI_ERR_OTHER,
-                                 "**mpi_get", "**mpi_get %p %d %D %d %d %d %D %W", origin_addr,
-                                 origin_count, origin_datatype, target_rank, target_disp,
-                                 target_count, target_datatype, win);
+                                 "**mpix_get_abs", "**mpix_get_abs %p %d %D %d %d %d %D %W",
+                                 origin_addr, origin_count, origin_datatype, target_rank,
+                                 target_addr, target_count, target_datatype, win);
     }
 #endif
     mpi_errno = MPIR_Err_return_win(win_ptr, FCNAME, mpi_errno);
