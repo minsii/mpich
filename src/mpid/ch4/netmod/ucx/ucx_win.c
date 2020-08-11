@@ -9,6 +9,7 @@
 struct ucx_share {
     int disp;
     MPI_Aint addr;
+    MPL_pointer_type_t ptr_type;
 };
 
 static int win_allgather(MPIR_Win * win, size_t length, uint32_t disp_unit, void **base_ptr);
@@ -109,10 +110,15 @@ static int win_allgather(MPIR_Win * win, size_t length, uint32_t disp_unit, void
         } else
             MPIDI_UCX_CHK_STATUS(status);
     }
+
+    MPL_pointer_attr_t win_attr;
+    MPIR_GPU_query_pointer_attr(*base_ptr, &win_attr);
+
     share_data = MPL_malloc(comm_ptr->local_size * sizeof(struct ucx_share), MPL_MEM_OTHER);
 
     share_data[comm_ptr->rank].disp = disp_unit;
     share_data[comm_ptr->rank].addr = (MPI_Aint) * base_ptr;
+    share_data[comm_ptr->rank].ptr_type = win_attr.type;
 
     mpi_errno =
         MPIR_Allgather(MPI_IN_PLACE, sizeof(struct ucx_share), MPI_BYTE, share_data,
@@ -122,6 +128,7 @@ static int win_allgather(MPIR_Win * win, size_t length, uint32_t disp_unit, void
     for (i = 0; i < comm_ptr->local_size; i++) {
         MPIDI_UCX_WIN_INFO(win, i).disp = share_data[i].disp;
         MPIDI_UCX_WIN_INFO(win, i).addr = share_data[i].addr;
+        MPIDI_UCX_WIN_INFO(win, i).ptr_type = share_data[i].ptr_type;
     }
 
     MPIDI_UCX_WIN(win).target_sync =

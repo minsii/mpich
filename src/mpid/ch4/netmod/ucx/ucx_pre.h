@@ -45,6 +45,7 @@ typedef struct MPIDI_UCX_win_info {
     ucp_rkey_h rkey;
     uint64_t addr;
     uint32_t disp;
+    MPL_pointer_type_t ptr_type;
 } MPIDI_UCX_win_info_t;
 
 typedef enum {

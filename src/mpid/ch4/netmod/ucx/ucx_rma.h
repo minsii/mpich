@@ -222,11 +222,19 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_put(const void *origin_addr,
         goto fn_exit;
     }
 
-    if (origin_contig && target_contig) {
+    MPL_pointer_attr_t origin_attr;
+    MPIR_GPU_query_pointer_attr(origin_addr, &origin_attr);
+
+    bool origin_gpu = (origin_attr.type == MPL_GPU_POINTER_DEV) ? true : false;
+    bool target_gpu =
+        (MPIDI_UCX_WIN_INFO(win, target_rank).ptr_type == MPL_GPU_POINTER_DEV) ? true : false;
+
+    if (origin_contig && !origin_gpu && target_contig && !target_gpu) {
         mpi_errno = MPIDI_UCX_contig_put((char *) origin_addr + origin_true_lb, origin_bytes,
                                          target_rank, target_disp, target_true_lb, win, addr,
                                          reqptr);
-    } else if (target_contig) {
+    } else if (target_contig && !target_gpu) {
+        /* pack origin data to temporary host buffer */
         mpi_errno = MPIDI_UCX_noncontig_put(origin_addr, origin_count, origin_datatype, target_rank,
                                             target_bytes, target_disp, target_true_lb, win, addr,
                                             reqptr);
@@ -279,7 +287,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_get(void *origin_addr,
         goto fn_exit;
     }
 
-    if (origin_contig && target_contig) {
+    MPL_pointer_attr_t origin_attr;
+    MPIR_GPU_query_pointer_attr(origin_addr, &origin_attr);
+
+    bool origin_gpu = (origin_attr.type == MPL_GPU_POINTER_DEV) ? true : false;
+    bool target_gpu =
+        (MPIDI_UCX_WIN_INFO(win, target_rank).ptr_type == MPL_GPU_POINTER_DEV) ? true : false;
+
+    if (origin_contig && !origin_gpu && target_contig && !target_gpu) {
         mpi_errno = MPIDI_UCX_contig_get((char *) origin_addr + origin_true_lb, origin_bytes,
                                          target_rank, target_disp, target_true_lb, win, addr,
                                          reqptr);
