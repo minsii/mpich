@@ -1161,7 +1161,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_dynamic_hook(MPIR_Win * win
             MPIR_ERR_POP(mpi_errno);
 
         /* Initialize memory region storage for basic MR mode */
-        if (!MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDIG_WIN(win, info_args).symm_attach) {
+        if (!MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDIG_WIN(win, info_args).coll_attach) {
             /* Initialize AVL tree for local registered region */
             int mpl_err = MPL_SUCCESS;
             mpl_err = MPL_gavl_tree_create(MPIDI_OFI_close_mr, &MPIDI_OFI_WIN(win).dwin_mems);
@@ -1212,7 +1212,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
 
     if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
-        !MPIDIG_WIN(win, info_args).symm_attach)
+        !MPIDIG_WIN(win, info_args).coll_attach)
         goto no_op_exit;
 
     MPIR_CHKPMEM_DECL(1);
@@ -1242,7 +1242,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *
                         mpi_errno, "temp buffer for dynamic win remote memory regions",
                         MPL_MEM_RMA);
 
-    /* Exchange remote MR across all processes because "symm_attach" info ensures
+    /* Exchange remote MR across all processes because "coll_attach" info ensures
      * that all processes collectively call attach. */
     target_mems[comm_ptr->rank].mr_key = fi_mr_key(mem->mr);
     target_mems[comm_ptr->rank].base = (uintptr_t) base;
@@ -1301,7 +1301,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
 
     if (MPIDI_OFI_ENABLE_MR_SCALABLE || !MPIDI_OFI_ENABLE_RMA ||
-        !MPIDIG_WIN(win, info_args).symm_attach)
+        !MPIDIG_WIN(win, info_args).coll_attach)
         goto no_op_exit;
 
     MPIR_CHKLMEM_DECL(1);
@@ -1316,7 +1316,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const 
                         mpi_errno, "temp buffer for dynamic win remote memory regions",
                         MPL_MEM_RMA);
 
-    /* Exchange remote MR across all processes because "symm_attach" info ensures
+    /* Exchange remote MR across all processes because "coll_attach" info ensures
      * that all processes collectively call detach. */
     target_bases[comm_ptr->rank] = (const void *) base;
     mpi_errno = MPIR_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
@@ -1370,7 +1370,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free_hook(MPIR_Win * win)
 
         /* Free cached MRs for dynamic window */
         if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC &&
-            !MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDIG_WIN(win, info_args).symm_attach) {
+            !MPIDI_OFI_ENABLE_MR_SCALABLE && MPIDIG_WIN(win, info_args).coll_attach) {
             int i;
             for (i = 0; i < win->comm_ptr->local_size; i++)
                 MPL_gavl_tree_free(MPIDI_OFI_WIN(win).dwin_target_mems[i]);

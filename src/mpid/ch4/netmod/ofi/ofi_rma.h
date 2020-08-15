@@ -64,10 +64,10 @@
 #define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA(win)   \
     (!MPIDI_OFI_ENABLE_MR_SCALABLE && win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
 
-#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH
+#ifdef ENABLE_DYNAMIC_WIN_COLL_ATTACH
 /* Only permit native RMA for PUT for now */
 #define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT(win)   \
-    (!MPIDI_OFI_ENABLE_MR_SCALABLE && !MPIDIG_WIN(win, info_args).symm_attach &&   \
+    (!MPIDI_OFI_ENABLE_MR_SCALABLE && !MPIDIG_WIN(win, info_args).coll_attach &&   \
         win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC)
 #else
 #define MPIDI_OFI_FALLBACK_DYNAMIC_WIN_PUT MPIDI_OFI_FALLBACK_DYNAMIC_WIN_RMA
@@ -546,7 +546,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_put(const void *origin_addr,
 
     uint64_t mr_key;
     uint64_t addr;
-#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH   /* Do not support native RMA over dynamic window if symm_attach is not on */
+#ifdef ENABLE_DYNAMIC_WIN_COLL_ATTACH   /* Do not support native RMA over dynamic window if coll_attach is not on */
     if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {
         addr = (uint64_t) (target_disp + MPI_BOTTOM);
         mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
@@ -776,7 +776,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
 
     uint64_t mr_key;
     uint64_t addr;
-#ifdef ENABLE_DYNAMIC_WIN_SYMM_ATTACH   /* Do not support native RMA over dynamic window if symm_attach is not on */
+#ifdef ENABLE_DYNAMIC_WIN_COLL_ATTACH   /* Do not support native RMA over dynamic window if coll_attach is not on */
     if (win->create_flavor == MPI_WIN_FLAVOR_DYNAMIC) {
         addr = (uint64_t) (target_disp + MPI_BOTTOM);
         mr_key = MPIDI_OFI_dwin_mr_key(win, (void *) addr, origin_bytes, target_rank);
