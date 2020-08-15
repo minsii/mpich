@@ -97,7 +97,14 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_op_types_str(MPIR_Win * win
     char *typecount, *type = NULL, *count = NULL;
     MPI_Datatype dtype;
 
-    typecount = (char *) strtok_r((char *) val, ",", &savePtr);
+    /* str can never be NULL. */
+    MPIR_Assert(val);
+
+    /* copy to a temporary buffer because strtok_r updates the string pointer */
+    char val_tmp[MPI_MAX_INFO_VAL + 1];
+    strncpy(val_tmp, val, sizeof(val_tmp));
+
+    typecount = (char *) strtok_r((char *) val_tmp, ",", &savePtr);
     while (typecount != NULL) {
         type = (char *) strtok_r((char *) typecount, ":", &subsavePtr);
         dtype = MPIR_Datatype_predefined_search_short_name(type);
@@ -125,12 +132,15 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_parse_info_accu_ops_str(MPIR_Win * win, con
                                                              uint32_t * ops_ptr)
 {
     uint32_t ops = 0;
-    char *value, *token, *savePtr = NULL;
+    char *token, *savePtr = NULL;
     int op_index;
 
-    value = (char *) str;
     /* str can never be NULL. */
-    MPIR_Assert(value);
+    MPIR_Assert(str);
+
+    /* copy to a temporary buffer because strtok_r updates the string pointer */
+    char value[MPI_MAX_INFO_VAL + 1];
+    strncpy(value, str, sizeof(value));
 
     /* handle special value */
     if (!strncmp(value, "none", strlen("none"))) {
@@ -255,7 +265,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_WIN_SET_INFO);
 
     MPIR_Info *curr_ptr;
-    char *value, *token, *savePtr = NULL;
+    char *token, *savePtr = NULL;
     int save_ordering;
     bool which_accumulate_ops_set = false;
     bool accumulate_op_types_set = false;
@@ -279,7 +289,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
             /* value can never be NULL. */
             MPIR_Assert(curr_ptr->value);
 
-            value = curr_ptr->value;
+            /* copy to a temporary buffer because strtok_r updates the string pointer */
+            char value[MPI_MAX_INFO_VAL + 1];
+            strncpy(value, curr_ptr->value, sizeof(value));
+
             token = (char *) strtok_r(value, ",", &savePtr);
 
             while (token) {
@@ -357,11 +370,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_set_info(MPIR_Win * win, MPIR_Info * inf
                 MPIDIG_WIN(win, info_args).disable_shm_accumulate = true;
             else
                 MPIDIG_WIN(win, info_args).disable_shm_accumulate = false;
-        } else if (is_init && !strcmp(curr_ptr->key, "symm_attach")) {
+        } else if (is_init && !strcmp(curr_ptr->key, "coll_attach")) {
             if (!strcmp(curr_ptr->value, "true"))
-                MPIDIG_WIN(win, info_args).symm_attach = true;
+                MPIDIG_WIN(win, info_args).coll_attach = true;
             else
-                MPIDIG_WIN(win, info_args).symm_attach = false;
+                MPIDIG_WIN(win, info_args).coll_attach = false;
         } else if (is_init && !strncmp(curr_ptr->key, "accumulate_op_types",
                                        strlen("accumulate_op_types"))) {
             /* Should not set which_accumulate_ops and accumulate_op_types together. */
@@ -496,7 +509,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_win_init(MPI_Aint length, int disp_unit, MPI
     MPIDIG_WIN(win, info_args).accumulate_noncontig_dtype = true;
     MPIDIG_WIN(win, info_args).accumulate_max_bytes = -1;
     MPIDIG_WIN(win, info_args).disable_shm_accumulate = false;
-    MPIDIG_WIN(win, info_args).symm_attach = false;
+    MPIDIG_WIN(win, info_args).coll_attach = false;
 
     if ((info != NULL) && ((int *) info != (int *) MPI_INFO_NULL)) {
         mpi_errno = MPIDIG_win_set_info(win, info, TRUE /* is_init */);
@@ -1103,10 +1116,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_get_info(MPIR_Win * win, MPIR_Info *
     if (MPI_SUCCESS != mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
-    if (MPIDIG_WIN(win, info_args).symm_attach)
-        mpi_errno = MPIR_Info_set_impl(*info_p_p, "symm_attach", "true");
+    if (MPIDIG_WIN(win, info_args).coll_attach)
+        mpi_errno = MPIR_Info_set_impl(*info_p_p, "coll_attach", "true");
     else
-        mpi_errno = MPIR_Info_set_impl(*info_p_p, "symm_attach", "false");
+        mpi_errno = MPIR_Info_set_impl(*info_p_p, "coll_attach", "false");
     if (MPI_SUCCESS != mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
