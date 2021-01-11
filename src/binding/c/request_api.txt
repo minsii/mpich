@@ -252,7 +252,7 @@ MPI_Waitall:
     }
 }
 {
-    mpi_errno = MPIR_Waitall(count, array_of_requests, array_of_statuses);
+    mpi_errno = MPIR_Waitall(count, array_of_requests, request_ptrs, array_of_statuses);
     if (mpi_errno)
         goto fn_fail;
 }

@@ -904,24 +904,16 @@ int MPIR_Waitall_impl(int count, MPIR_Request * request_ptrs[], MPI_Status array
     goto fn_exit;
 }
 
-int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[])
+int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 MPI_Status array_of_statuses[])
 {
     int mpi_errno = MPI_SUCCESS;
-    MPIR_Request *request_ptr_array[MPIR_REQUEST_PTR_ARRAY_SIZE];
-    MPIR_Request **request_ptrs = request_ptr_array;
     int i, j, ii, icount;
     int n_completed;
     int rc = MPI_SUCCESS;
     int disabled_anysource = FALSE;
     const int ignoring_statuses = (array_of_statuses == MPI_STATUSES_IGNORE);
     int requests_property = MPIR_REQUESTS_PROPERTY__OPT_ALL;
-    MPIR_CHKLMEM_DECL(1);
-
-    /* Convert MPI request handles to a request object pointers */
-    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE) {
-        MPIR_CHKLMEM_MALLOC(request_ptrs, MPIR_Request **, count * sizeof(MPIR_Request *),
-                            mpi_errno, "request pointers", MPL_MEM_OBJECT);
-    }
 
     for (ii = 0; ii < count; ii += MPIR_CVAR_REQUEST_BATCH_SIZE) {
         icount = count - ii > MPIR_CVAR_REQUEST_BATCH_SIZE ?
@@ -932,21 +924,6 @@ int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of
 
         for (i = ii; i < ii + icount; i++) {
             if (array_of_requests[i] != MPI_REQUEST_NULL) {
-                MPIR_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
-                /* Validate object pointers if error checking is enabled */
-#ifdef HAVE_ERROR_CHECKING
-                {
-                    MPID_BEGIN_ERROR_CHECKS;
-                    {
-                        MPIR_Request_valid_ptr(request_ptrs[i], mpi_errno);
-                        MPIR_ERR_CHECK(mpi_errno);
-                        MPIR_ERR_CHKANDJUMP1((request_ptrs[i]->kind == MPIR_REQUEST_KIND__MPROBE),
-                                             mpi_errno, MPI_ERR_ARG, "**msgnotreq",
-                                             "**msgnotreq %d", i);
-                    }
-                    MPID_END_ERROR_CHECKS;
-                }
-#endif
                 /* If one of the requests is an anysource on a communicator that's
                  * disabled such communication, convert this operation to a testall
                  * instead to prevent getting stuck in the progress engine. */
@@ -1059,10 +1036,6 @@ int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of
     }
 
   fn_exit:
-    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE) {
-        MPIR_CHKLMEM_FREEALL();
-    }
-
     return mpi_errno;
   fn_fail:
     goto fn_exit;
