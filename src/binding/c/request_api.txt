@@ -142,7 +142,7 @@ MPI_Test:
     .desc: Test for the completion of a request
     .docnotes: waitstatus
 {
-    mpi_errno = MPIR_Test(request, flag, status);
+    mpi_errno = MPIR_Test(request, request_ptr, flag, status);
     if (mpi_errno)
         goto fn_fail;
 }
