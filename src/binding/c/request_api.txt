@@ -174,7 +174,7 @@ MPI_Testall:
     }
 }
 {
-    mpi_errno = MPIR_Testall(count, array_of_requests, flag, array_of_statuses);
+    mpi_errno = MPIR_Testall(count, array_of_requests, request_ptrs, flag, array_of_statuses);
     if (mpi_errno != MPI_SUCCESS)
         goto fn_fail;
 }

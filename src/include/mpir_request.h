@@ -640,8 +640,8 @@ int MPIR_Waitsome_impl(int incount, MPIR_Request * request_ptrs[],
                        int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]);
 
 int MPIR_Test(MPI_Request * request, MPIR_Request * request_ptr, int *flag, MPI_Status * status);
-int MPIR_Testall(int count, MPI_Request array_of_requests[], int *flag,
-                 MPI_Status array_of_statuses[]);
+int MPIR_Testall(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 int *flag, MPI_Status array_of_statuses[]);
 int MPIR_Testany(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
                  int *indx, int *flag, MPI_Status * status);
 int MPIR_Testsome(int incount, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],

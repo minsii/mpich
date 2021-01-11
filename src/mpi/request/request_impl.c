@@ -365,11 +365,9 @@ int MPIR_Testall_impl(int count, MPIR_Request * request_ptrs[], int *flag,
                               requests_property, NULL);
 }
 
-int MPIR_Testall(int count, MPI_Request array_of_requests[], int *flag,
-                 MPI_Status array_of_statuses[])
+int MPIR_Testall(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 int *flag, MPI_Status array_of_statuses[])
 {
-    MPIR_Request *request_ptr_array[MPIR_REQUEST_PTR_ARRAY_SIZE];
-    MPIR_Request **request_ptrs = request_ptr_array;
     int i;
     int n_completed;
     int active_flag;
@@ -378,17 +376,9 @@ int MPIR_Testall(int count, MPI_Request array_of_requests[], int *flag,
     int mpi_errno = MPI_SUCCESS;
     int requests_property = MPIR_REQUESTS_PROPERTY__OPT_ALL;
     int ignoring_status = (array_of_statuses == MPI_STATUSES_IGNORE);
-    MPIR_CHKLMEM_DECL(1);
 
     int ii, icount, impi_errno;
     n_completed = 0;
-
-    /* Convert MPI request handles to a request object pointers */
-    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE) {
-        MPIR_CHKLMEM_MALLOC_ORJUMP(request_ptrs, MPIR_Request **,
-                                   count * sizeof(MPIR_Request *), mpi_errno, "request pointers",
-                                   MPL_MEM_OBJECT);
-    }
 
     for (ii = 0; ii < count; ii += MPIR_CVAR_REQUEST_BATCH_SIZE) {
         icount = count - ii > MPIR_CVAR_REQUEST_BATCH_SIZE ?
@@ -398,19 +388,6 @@ int MPIR_Testall(int count, MPI_Request array_of_requests[], int *flag,
 
         for (i = ii; i < ii + icount; i++) {
             if (array_of_requests[i] != MPI_REQUEST_NULL) {
-                MPIR_Request_get_ptr(array_of_requests[i], request_ptrs[i]);
-                /* Validate object pointers if error checking is enabled */
-#ifdef HAVE_ERROR_CHECKING
-                {
-                    MPID_BEGIN_ERROR_CHECKS;
-                    {
-                        MPIR_Request_valid_ptr(request_ptrs[i], mpi_errno);
-                        if (mpi_errno)
-                            goto fn_fail;
-                    }
-                    MPID_END_ERROR_CHECKS;
-                }
-#endif
                 if (request_ptrs[i]->kind != MPIR_REQUEST_KIND__RECV &&
                     request_ptrs[i]->kind != MPIR_REQUEST_KIND__SEND) {
                     requests_property &= ~MPIR_REQUESTS_PROPERTY__SEND_RECV_ONLY;
@@ -524,10 +501,6 @@ int MPIR_Testall(int count, MPI_Request array_of_requests[], int *flag,
     }
 
   fn_exit:
-    if (count > MPIR_REQUEST_PTR_ARRAY_SIZE) {
-        MPIR_CHKLMEM_FREEALL();
-    }
-
     return mpi_errno;
   fn_fail:
     goto fn_exit;
