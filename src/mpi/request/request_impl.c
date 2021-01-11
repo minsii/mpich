@@ -829,11 +829,10 @@ int MPIR_Wait_impl(MPIR_Request * request_ptr, MPI_Status * status)
     return mpi_errno;
 }
 
-int MPIR_Wait(MPI_Request * request, MPI_Status * status)
+int MPIR_Wait(MPI_Request * request, MPIR_Request * request_ptr, MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
     int active_flag;
-    MPIR_Request *request_ptr = NULL;
 
     /* If this is a null request handle, then return an empty status */
     if (*request == MPI_REQUEST_NULL) {
@@ -841,7 +840,6 @@ int MPIR_Wait(MPI_Request * request, MPI_Status * status)
         goto fn_exit;
     }
 
-    MPIR_Request_get_ptr(*request, request_ptr);
     MPIR_Assert(request_ptr != NULL);
 
     if (!MPIR_Request_is_complete(request_ptr)) {

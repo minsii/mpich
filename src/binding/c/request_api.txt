@@ -223,7 +223,7 @@ MPI_Wait:
     .desc: Waits for an MPI request to complete
     .docnotes: waitstatus
 {
-    mpi_errno = MPIR_Wait(request, status);
+    mpi_errno = MPIR_Wait(request, request_ptr, status);
     if (mpi_errno)
         goto fn_fail;
 }
