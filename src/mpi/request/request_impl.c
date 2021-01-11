@@ -1181,6 +1181,72 @@ int MPIR_Waitany_impl(int count, MPIR_Request * request_ptrs[], int *indx, MPI_S
     goto fn_exit;
 }
 
+int MPIR_Waitany(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 int *indx, MPI_Status * status)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int last_disabled_anysource = -1;
+    int first_nonnull = count;
+
+    *indx = MPI_UNDEFINED;
+
+    for (int i = 0; i < count; i++) {
+        if (array_of_requests[i] != MPI_REQUEST_NULL) {
+            if (unlikely(MPIR_Request_is_anysrc_mismatched(request_ptrs[i]))) {
+                last_disabled_anysource = i;
+            }
+
+            /* Since waitany is likely to return as soon as a
+             * completed request is found, the first loop here is
+             * taking the longest. We can check for any completed
+             * request here, and we can poll from the first entry
+             * which is not null. */
+            if (MPIR_Request_is_complete(request_ptrs[i])) {
+                if (MPIR_Request_is_active(request_ptrs[i])) {
+                    *indx = i;
+                    break;
+                } else {
+                    request_ptrs[i] = NULL;
+                }
+            } else {
+                if (first_nonnull == count)
+                    first_nonnull = i;
+            }
+        } else {
+            request_ptrs[i] = NULL;
+        }
+    }
+
+    if (*indx == MPI_UNDEFINED) {
+        if (unlikely(last_disabled_anysource != -1)) {
+            int flag;
+            mpi_errno = MPI_Testany(count, array_of_requests, indx, &flag, status);
+            goto fn_exit;
+        }
+
+        mpi_errno = MPID_Waitany(count - first_nonnull, &request_ptrs[first_nonnull], indx, status);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        if (*indx != MPI_UNDEFINED) {
+            *indx += first_nonnull;
+        } else {
+            goto fn_exit;
+        }
+    }
+
+    mpi_errno = MPIR_Request_completion_processing(request_ptrs[*indx], status);
+    if (!MPIR_Request_is_persistent(request_ptrs[*indx])) {
+        MPIR_Request_free(request_ptrs[*indx]);
+        array_of_requests[*indx] = MPI_REQUEST_NULL;
+    }
+    MPIR_ERR_CHECK(mpi_errno);
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /* -- Waitsome -- */
 /* MPID_Waitsome call MPIR_Waitsome_state with initialized progress state */
 int MPIR_Waitsome_state(int incount, MPIR_Request * request_ptrs[],

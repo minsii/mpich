@@ -648,5 +648,7 @@ int MPIR_Testsome(int incount, MPI_Request array_of_requests[], MPIR_Request * r
                   int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]);
 int MPIR_Wait(MPI_Request * request, MPI_Status * status);
 int MPIR_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
+int MPIR_Waitany(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 int *indx, MPI_Status * status);
 
 #endif /* MPIR_REQUEST_H_INCLUDED */
