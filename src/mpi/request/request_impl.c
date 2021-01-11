@@ -585,6 +585,88 @@ int MPIR_Testany_impl(int count, MPIR_Request * request_ptrs[],
     return MPIR_Testany_state(count, request_ptrs, indx, flag, status, NULL);
 }
 
+int MPIR_Testany(int count, MPI_Request array_of_requests[], MPIR_Request * request_ptrs[],
+                 int *indx, int *flag, MPI_Status * status)
+{
+    int n_inactive = 0;
+    int last_disabled_anysource = -1;
+    int first_nonnull = count;
+
+    *flag = FALSE;
+    *indx = MPI_UNDEFINED;
+
+    for (int i = 0; i < count; i++) {
+        if (array_of_requests[i] != MPI_REQUEST_NULL) {
+            if (unlikely(MPIR_Request_is_anysrc_mismatched(request_ptrs[i]))) {
+                last_disabled_anysource = i;
+            }
+
+            if (MPIR_Request_is_complete(request_ptrs[i])) {
+                if (MPIR_Request_is_active(request_ptrs[i])) {
+                    *indx = i;
+                    *flag = TRUE;
+                    break;
+                } else {
+                    request_ptrs[i] = NULL;
+                }
+            } else {
+                if (first_nonnull == count)
+                    first_nonnull = i;
+            }
+        } else {
+            request_ptrs[i] = NULL;
+            n_inactive += 1;
+        }
+    }
+
+    if (n_inactive == count) {
+        *flag = TRUE;
+        *indx = MPI_UNDEFINED;
+        if (status != NULL)     /* could be null if count=0 */
+            MPIR_Status_set_empty(status);
+        goto fn_exit;
+    }
+
+    if (*indx == MPI_UNDEFINED) {
+        mpi_errno =
+            MPID_Testany(count - first_nonnull, &request_ptrs[first_nonnull], indx, flag, status);
+        /* --BEGIN ERROR HANDLING-- */
+        if (mpi_errno != MPI_SUCCESS) {
+            goto fn_fail;
+        }
+        /* --END ERROR HANDLING-- */
+
+        if (*indx != MPI_UNDEFINED) {
+            *indx += first_nonnull;
+        }
+    }
+
+    if (*indx != MPI_UNDEFINED) {
+        mpi_errno = MPIR_Request_completion_processing(request_ptrs[*indx], status);
+        if (!MPIR_Request_is_persistent(request_ptrs[*indx])) {
+            MPIR_Request_free(request_ptrs[*indx]);
+            array_of_requests[*indx] = MPI_REQUEST_NULL;
+        }
+        MPIR_ERR_CHECK(mpi_errno);
+        goto fn_exit;
+    }
+
+    /* If none of the requests completed, mark the last anysource request as
+     * pending failure. */
+    if (unlikely(last_disabled_anysource != -1)) {
+        MPIR_ERR_SET(mpi_errno, MPIX_ERR_PROC_FAILED_PENDING, "**failure_pending");
+        if (status != MPI_STATUS_IGNORE)
+            status->MPI_ERROR = mpi_errno;
+        *flag = TRUE;
+        goto fn_fail;
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /* -- Testsome -- */
 int MPIR_Testsome_state(int incount, MPIR_Request * request_ptrs[],
                         int *outcount, int array_of_indices[], MPI_Status array_of_statuses[],
