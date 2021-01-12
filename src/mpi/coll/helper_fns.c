@@ -597,13 +597,13 @@ int MPIC_Irecv(void *buf, MPI_Aint count, MPI_Datatype datatype, int source,
 }
 
 
-int MPIC_Waitall(int numreq, MPIR_Request * requests[], MPI_Status statuses[],
+int MPIC_Waitall(int numreq, MPIR_Request * request_ptrs[], MPI_Status statuses[],
                  MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
     int i;
-    MPI_Request request_ptr_array[MPIC_REQUEST_PTR_ARRAY_SIZE];
-    MPI_Request *request_ptrs = request_ptr_array;
+    MPI_Request request_array[MPIC_REQUEST_PTR_ARRAY_SIZE];
+    MPI_Request *array_of_requests = request_array;
     MPI_Status status_static_array[MPIC_REQUEST_PTR_ARRAY_SIZE];
     MPI_Status *status_array = statuses;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIC_WAITALL);
@@ -618,8 +618,8 @@ int MPIC_Waitall(int numreq, MPIR_Request * requests[], MPI_Status statuses[],
     }
 
     if (numreq > MPIC_REQUEST_PTR_ARRAY_SIZE) {
-        MPIR_CHKLMEM_MALLOC(request_ptrs, MPI_Request *, numreq * sizeof(MPI_Request), mpi_errno,
-                            "request pointers", MPL_MEM_BUFFER);
+        MPIR_CHKLMEM_MALLOC(array_of_requests, MPI_Request *, numreq * sizeof(MPI_Request),
+                            mpi_errno, "request objects", MPL_MEM_BUFFER);
         MPIR_CHKLMEM_MALLOC(status_array, MPI_Status *, numreq * sizeof(MPI_Status), mpi_errno,
                             "status objects", MPL_MEM_BUFFER);
     }
@@ -632,10 +632,10 @@ int MPIC_Waitall(int numreq, MPIR_Request * requests[], MPI_Status statuses[],
         status_array[i].MPI_SOURCE = MPI_PROC_NULL;
 
         /* Convert the MPIR_Request objects to MPI_Request objects */
-        request_ptrs[i] = requests[i]->handle;
+        array_of_requests[i] = request_ptrs[i]->handle;
     }
 
-    mpi_errno = MPIR_Waitall(numreq, request_ptrs, status_array);
+    mpi_errno = MPIR_Waitall(numreq, array_of_requests, status_array);
 
     /* The errflag value here is for all requests, not just a single one.  If
      * in the future, this function is used for multiple collectives at a
