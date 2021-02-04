@@ -15,6 +15,10 @@ typedef struct gpu_free_hook {
     struct gpu_free_hook *next;
 } gpu_free_hook_s;
 
+static int gpu_initialized = 0;
+static int device_count = -1;
+static int max_dev_id = -1;
+
 static gpu_free_hook_s *free_hook_chain = NULL;
 
 static CUresult CUDAAPI(*sys_cuMemFree) (CUdeviceptr dptr);
@@ -56,6 +60,18 @@ static bool inc_buf_cache_search(const void *ptr)
     /* Simply set len to 1byte because never overlap across ranges. */
     mpl_err = MPL_gavl_tree_search(ipc_buf_cache_tree, ptr, 1, &result_ptr);
     return result_ptr ? true : false;
+}
+
+int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
+{
+    int ret = MPL_SUCCESS;
+    if (!gpu_initialized) {
+        ret = MPL_gpu_init(&device_count, &max_dev_id);
+    }
+
+    *dev_cnt = device_count;
+    *dev_id = max_dev_id;
+    return ret;
 }
 
 int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
@@ -254,6 +270,7 @@ int MPL_gpu_init(int *device_count, int *max_dev_id_ptr)
 
     gpu_mem_hook_init();
     ipc_buf_cache_init();
+    gpu_initialized = 1;
 
   fn_exit:
     return MPL_SUCCESS;
