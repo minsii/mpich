@@ -88,7 +88,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
     MPL_time_t time_0, time_1;
     UCX_AM_TIMER_START(time_0);
 
+#ifdef UCX_AM_DISABLE_GPU_MALLOC
+    send_buf = (char *) MPL_malloc(data_sz + am_hdr_sz + sizeof(ucx_hdr), MPL_MEM_BUFFER);
+#else
     MPL_gpu_malloc_host((void **) &send_buf, data_sz + am_hdr_sz + sizeof(ucx_hdr));
+#endif
     MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
     MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
 
@@ -111,7 +115,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
 
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
+#ifdef UCX_AM_DISABLE_GPU_MALLOC
+        MPL_free(send_buf);
+#else
         MPL_gpu_free_host(send_buf);
+#endif
         MPIDIG_global.origin_cbs[handler_id] (sreq);
         goto fn_exit;
     }
