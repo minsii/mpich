@@ -950,6 +950,9 @@ typedef int (MPI_Datarep_extent_function)(MPI_Datatype datatype, MPI_Aint *,
 #include <mpi_proto.h>
 #endif /* MPICH_SUPPRESS_PROTOTYPES */
 
+void MPII_UCX_RESET_TIME(void) MPICH_API_PUBLIC;
+void MPII_UCX_PRINT_TIME(char *prefix, double multiplier) MPICH_API_PUBLIC;
+
 /* GPU extensions */
 #define MPIX_GPU_SUPPORT_CUDA  (0)
 #define MPIX_GPU_SUPPORT_ZE    (1)

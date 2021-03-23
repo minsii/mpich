@@ -39,6 +39,22 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_UCX_am_send_callback(void *request, ucs_stat
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_UCX_AM_SEND_CALLBACK);
 }
 
+extern double am_send_alloc_pack_time;
+extern double am_send_free_time;
+
+#ifdef ENABLE_UCX_AM_TIMER
+#define UCX_AM_TIMER_START(t0) do {MPL_wtime(&t0);} while (0)
+#define UCX_AM_TIMER_END(t0, t1, tot) do {          \
+double time_gap = 0;                                \
+MPL_wtime(&t1);                                     \
+MPL_wtime_diff(&t0, &t1, &time_gap);                \
+tot += time_gap;                                    \
+} while (0)
+#else
+#define UCX_AM_TIMER_START(t0)
+#define UCX_AM_TIMER_END(t0, t1, tot)
+#endif
+
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
                                                MPIR_Comm * comm,
@@ -69,6 +85,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
     ucx_hdr.handler_id = handler_id;
     ucx_hdr.data_sz = data_sz;
 
+    MPL_time_t time_0, time_1;
+    UCX_AM_TIMER_START(time_0);
+
     MPL_gpu_malloc_host((void **) &send_buf, data_sz + am_hdr_sz + sizeof(ucx_hdr));
     MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
     MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
@@ -80,11 +99,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_Assert(actual_pack_bytes == data_sz);
 
+    UCX_AM_TIMER_END(time_0, time_1, am_send_alloc_pack_time);
+
     ucp_request = (MPIDI_UCX_ucp_request_t *) ucp_tag_send_nb(ep, send_buf,
                                                               data_sz + am_hdr_sz + sizeof(ucx_hdr),
                                                               ucp_dt_make_contig(1), ucx_tag,
                                                               &MPIDI_UCX_am_isend_callback);
     MPIDI_UCX_CHK_REQUEST(ucp_request);
+
+    UCX_AM_TIMER_START(time_0);
 
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
@@ -92,6 +115,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
         MPIDIG_global.origin_cbs[handler_id] (sreq);
         goto fn_exit;
     }
+
+    UCX_AM_TIMER_END(time_0, time_1, am_send_free_time);
 
     /* set the ch4r request inside the UCP request */
     sreq->dev.ch4.am.netmod_am.ucx.pack_buffer = send_buf;
