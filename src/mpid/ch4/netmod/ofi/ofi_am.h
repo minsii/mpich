@@ -118,7 +118,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
 {
     int mpi_errno = MPI_SUCCESS, is_allocated;
     int i;
-    MPI_Aint am_hdr_sz = 0;
+    MPI_Aint am_hdr_ksz = 0;
     char *am_hdr_buf;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISENDV);
