@@ -165,12 +165,11 @@ int MPIDI_IPC_mpi_win_create_hook(MPIR_Win * win)
                     MPIR_ERR_CHECK(mpi_errno);
                     break;
                 case MPIDI_IPCI_TYPE__GPU:
-                    /* FIXME: remote win buffer should be mapped to each of their corresponding
-                     * local GPU device. */
                     mpi_errno =
                         MPIDI_GPU_ipc_handle_map(ipc_shared_table[i].ipc_handle.gpu,
-                                                 ipc_attr.gpu_attr.device, MPI_BYTE,
-                                                 MPIDI_GPU_IPC_REMOTE_ANY_OP,
+                                                 MPL_GPU_DEVICE_INVALID
+                                                 /* associated local device is unknown */ ,
+                                                 MPI_BYTE, MPIDI_GPU_IPC_REMOTE_ANY_OP,
                                                  &shared_table[i].shm_base_addr);
                     MPIR_ERR_CHECK(mpi_errno);
                     break;
