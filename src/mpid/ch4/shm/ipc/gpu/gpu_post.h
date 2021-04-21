@@ -29,8 +29,8 @@ cvars:
 int MPIDI_GPU_get_ipc_attr(const void *vaddr, int rank, MPIR_Comm * comm,
                            MPIDI_IPCI_ipc_attr_t * ipc_attr);
 int MPIDI_GPU_ipc_handle_map(MPIDI_GPU_ipc_handle_t handle,
-                             MPL_gpu_device_handle_t dev_handle,
-                             MPI_Datatype recv_type, void **vaddr);
+                             MPL_gpu_device_handle_t local_dev_handle,
+                             MPI_Datatype local_type, MPIDI_GPU_ipc_remote_op_t op, void **vaddr);
 int MPIDI_GPU_ipc_handle_unmap(void *vaddr, MPIDI_GPU_ipc_handle_t handle);
 int MPIDI_GPU_mpi_init_hook(int rank, int size, int *tag_bits);
 int MPIDI_GPU_mpi_finalize_hook(void);

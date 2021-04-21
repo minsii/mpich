@@ -125,7 +125,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_handle_lmt_recv(MPIDI_IPCI_type_t ipc_ty
         case MPIDI_IPCI_TYPE__GPU:
             mpi_errno =
                 MPIDI_GPU_ipc_handle_map(ipc_handle.gpu, attr.device,
-                                         MPIDIG_REQUEST(rreq, datatype), &src_buf);
+                                         MPIDIG_REQUEST(rreq, datatype), MPIDI_GPU_IPC_REMOTE_READ,
+                                         &src_buf);
             break;
         case MPIDI_IPCI_TYPE__NONE:
             /* no-op */

@@ -13,6 +13,16 @@ enum {
     MPIDI_GPU_IPC_HANDLE_REMAP_REQUIRED,
 };
 
+/* Operation will be issued to the remote device buffer.
+ * The IPC mapping process specifies it at mapping time.
+ * If the data transfer operation is unknown at mapping time,
+ * then set MPIDI_GPU_IPC_REMOTE_ANY_OP. */
+typedef enum {
+    MPIDI_GPU_IPC_REMOTE_ANY_OP,
+    MPIDI_GPU_IPC_REMOTE_READ,
+    /* TODO: No remote write scenario so far;skip for now */
+} MPIDI_GPU_ipc_remote_op_t;
+
 typedef struct MPIDI_GPU_ipc_handle {
     MPL_gpu_ipc_mem_handle_t ipc_handle;
     int global_dev_id;

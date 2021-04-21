@@ -74,7 +74,7 @@ static int ipc_handle_cache_insert(MPL_gavl_tree_t gavl_tree, const void *addr, 
 
 static int get_map_device(int remote_global_dev_id,
                           MPL_gpu_device_handle_t local_dev_handle,
-                          MPI_Datatype local_type, int *dev_id)
+                          MPI_Datatype local_type, MPIDI_GPU_ipc_remote_op_t op, int *dev_id)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -92,20 +92,36 @@ static int get_map_device(int remote_global_dev_id,
     HASH_FIND_INT(MPIDI_GPUI_global.global_to_local_map, &remote_global_dev_id, remote_dev);
     MPL_gpu_get_dev_id(local_dev_handle, &local_dev_id);
     if (local_dev_id < 0) {
-        /* when receiver's buffer is on host memory, local_dev_id will be less than 0.
+        /* The local process may not have preferred device, e.g., local buffer is
+         * on host memory. In such a case, local_dev_id will be less than 0.
          * however, when we decide to map buffer onto receiver's device, this mapping
          * will be invalid, so we need to assign a default gpu instead; for now, we
          * assume process can at least access one GPU, so device id 0 is set. */
         local_dev_id = 0;
     }
 
-    if (remote_dev == NULL) {
-        *dev_id = local_dev_id;
-    } else {
-        if (!local_dt_contig)
-            *dev_id = local_dev_id;
-        else
-            *dev_id = remote_dev->local_dev_id;
+    switch (op) {
+        case MPIDI_GPU_IPC_REMOTE_READ:
+            if (local_dt_contig && remote_dev) {
+                /* let remote device issues a single write */
+                *dev_id = remote_dev->local_dev_id;
+            } else {
+                /* assuming local device is less busy as it is waiting for data
+                 * Thus let it handle more expensive noncontig copy */
+                *dev_id = local_dev_id;
+            }
+            break;
+        case MPIDI_GPU_IPC_REMOTE_ANY_OP:
+        default:
+            /* no preference between remote device v.s. local device.
+             * First try the remote device as it is the physical location;
+             * if it is not visible, then try local device */
+            if (remote_dev) {
+                *dev_id = remote_dev->local_dev_id;
+            } else {
+                *dev_id = local_dev_id;
+            }
+            break;
     }
 #endif
 
@@ -240,7 +256,7 @@ int MPIDI_GPU_get_ipc_attr(const void *vaddr, int rank, MPIR_Comm * comm,
 
 int MPIDI_GPU_ipc_handle_map(MPIDI_GPU_ipc_handle_t handle,
                              MPL_gpu_device_handle_t local_dev_handle,
-                             MPI_Datatype local_type, void **vaddr)
+                             MPI_Datatype local_type, MPIDI_GPU_ipc_remote_op_t op, void **vaddr)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -263,7 +279,7 @@ int MPIDI_GPU_ipc_handle_map(MPIDI_GPU_ipc_handle_t handle,
         }
     }
 
-    mpi_errno = get_map_device(handle.global_dev_id, local_dev_handle, local_type, &map_dev_id);
+    mpi_errno = get_map_device(handle.global_dev_id, local_dev_handle, local_type, op, &map_dev_id);
     MPIR_ERR_CHECK(mpi_errno);
 
     mpi_errno = ipc_handle_cache_search(MPIDI_GPUI_global.ipc_handle_mapped_trees[handle.node_rank]

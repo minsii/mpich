@@ -170,6 +170,7 @@ int MPIDI_IPC_mpi_win_create_hook(MPIR_Win * win)
                     mpi_errno =
                         MPIDI_GPU_ipc_handle_map(ipc_shared_table[i].ipc_handle.gpu,
                                                  ipc_attr.gpu_attr.device, MPI_BYTE,
+                                                 MPIDI_GPU_IPC_REMOTE_ANY_OP,
                                                  &shared_table[i].shm_base_addr);
                     MPIR_ERR_CHECK(mpi_errno);
                     break;
