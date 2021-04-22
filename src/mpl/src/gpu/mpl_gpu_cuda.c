@@ -22,6 +22,42 @@ static cudaError_t CUDARTAPI(*sys_cudaFree) (void *dptr);
 
 static int gpu_mem_hook_init();
 
+/* Internal routines to track local IPC buffers created by cudaIpcOpenMemHandle.
+ * Used to check if a buffer is within the range of a local IPC buffer.
+ * NOTE: no need to cache separately for different devices because all devices
+ * share the same UVA of local process. */
+static MPL_gavl_tree_t ipc_buf_cache_tree;
+
+static int ipc_buf_cache_init(void)
+{
+    return MPL_gavl_tree_create(NULL, &ipc_buf_cache_tree);
+}
+
+static int ipc_buf_cache_destroy(void)
+{
+    return MPL_gavl_tree_destory(ipc_buf_cache_tree);
+}
+
+static int inc_buf_cache_insert(const void *ptr, uintptr_t len)
+{
+    return MPL_gavl_tree_insert(ipc_buf_cache_tree, ptr, len, ptr);
+}
+
+static int inc_buf_cache_delete(const void *ptr)
+{
+    return MPL_gavl_tree_delete_start_addr(ipc_buf_cache_tree, ptr);
+}
+
+static bool inc_buf_cache_search(const void *ptr)
+{
+    int mpl_err = MPL_SUCCESS;
+    void *result_ptr;
+
+    /* Simply set len to 1byte because never overlap across ranges. */
+    mpl_err = MPL_gavl_tree_search(ipc_buf_cache_tree, ptr, 1, &result_ptr);
+    return result_ptr ? true : false;
+}
+
 int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
 {
     cudaError_t ret;
@@ -38,7 +74,9 @@ int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
                 attr->device = attr->device_attr.device;
                 break;
             case cudaMemoryTypeDevice:
+                attr->is_ipc = inc_buf_cache_search(ptr);
                 attr->type = MPL_GPU_POINTER_DEV;
+                /* for IPC mapped buffer, it means the mapped device but not original one */
                 attr->device = attr->device_attr.device;
                 break;
             case cudaMemoryTypeManaged:
@@ -83,6 +121,8 @@ int MPL_gpu_ipc_handle_map(MPL_gpu_ipc_mem_handle_t ipc_handle, uintptr_t len,
     ret = cudaIpcOpenMemHandle(ptr, ipc_handle, cudaIpcMemLazyEnablePeerAccess);
     CUDA_ERR_CHECK(ret);
 
+    inc_buf_cache_insert(*ptr, len);
+
   fn_exit:
     cudaSetDevice(prev_devid);
     return MPL_SUCCESS;
@@ -93,6 +133,9 @@ int MPL_gpu_ipc_handle_map(MPL_gpu_ipc_mem_handle_t ipc_handle, uintptr_t len,
 int MPL_gpu_ipc_handle_unmap(void *ptr)
 {
     cudaError_t ret;
+
+    inc_buf_cache_delete(ptr);
+
     ret = cudaIpcCloseMemHandle(ptr);
     CUDA_ERR_CHECK(ret);
 
@@ -210,6 +253,7 @@ int MPL_gpu_init(int *device_count, int *max_dev_id_ptr)
     *device_count = count;
 
     gpu_mem_hook_init();
+    ipc_buf_cache_init();
 
   fn_exit:
     return MPL_SUCCESS;
@@ -219,6 +263,8 @@ int MPL_gpu_init(int *device_count, int *max_dev_id_ptr)
 
 int MPL_gpu_finalize()
 {
+    ipc_buf_cache_destroy();
+
     gpu_free_hook_s *prev;
     while (free_hook_chain) {
         prev = free_hook_chain;
