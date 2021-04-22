@@ -25,6 +25,7 @@ static int gpu_mem_hook_init();
 int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
 {
     cudaError_t ret;
+    attr->is_ipc = false;
     ret = cudaPointerGetAttributes(&attr->device_attr, ptr);
     if (ret == cudaSuccess) {
         switch (attr->device_attr.type) {
