@@ -324,6 +324,8 @@ int MPIDI_UCX_init_local(int *tag_bits)
     goto fn_exit;
 }
 
+int MPIDI_UCX_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_Comm * init_comm);
+
 int MPIDI_UCX_init_world(MPIR_Comm * init_comm)
 {
     int mpi_errno = MPI_SUCCESS;
