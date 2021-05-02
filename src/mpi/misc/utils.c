@@ -162,7 +162,7 @@ int MPIR_Localcopy(const void *sendbuf, MPI_Aint sendcount, MPI_Datatype sendtyp
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPIR_LOCALCOPY);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPIR_LOCALCOPY);
 
-    mpi_errno = do_localcopy(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype);
+    mpi_errno = do_localcopy(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, NULL);
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
